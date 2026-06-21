@@ -1,0 +1,153 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+body{
+    height:100vh;
+    background:#f4f7f6;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.container{
+    width:1000px;
+    max-width:95%;
+    height:600px;
+    background:#fff;
+    border-radius:20px;
+    overflow:hidden;
+    display:flex;
+    box-shadow:0 15px 40px rgba(0,0,0,0.12);
+}
+
+/* Left Side */
+.left{
+    flex:1;
+    background:linear-gradient(135deg,#003c3d,#006c6e);
+    color:white;
+    padding:60px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+}
+
+.logo{
+    font-size:32px;
+    font-weight:700;
+    margin-bottom:15px;
+}
+
+.subtitle{
+    font-size:16px;
+    opacity:.85;
+    line-height:1.7;
+}
+
+.features{
+    margin-top:40px;
+}
+
+.features div{
+    margin-bottom:15px;
+    font-size:15px;
+}
+
+/* Right Side */
+.right{
+    flex:1;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:40px;
+}
+
+.login-box{
+    width:100%;
+    max-width:360px;
+}
+
+.login-box h2{
+    color:#003c3d;
+    margin-bottom:10px;
+}
+
+.login-box p{
+    color:#777;
+    margin-bottom:30px;
+}
+
+.input-group{
+    margin-bottom:20px;
+}
+
+.input-group label{
+    display:block;
+    margin-bottom:8px;
+    color:#444;
+    font-size:14px;
+}
+
+.input-group input{
+    width:100%;
+    padding:14px;
+    border:1px solid #d8e1e1;
+    border-radius:10px;
+    outline:none;
+    font-size:14px;
+}
+
+.input-group input:focus{
+    border-color:#008080;
+}
+.options a{
+    text-decoration:none;
+    color:#008080;
+}
+
+.btn{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    background:#008080;
+    color:white;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.btn:hover{
+    background:#006c6e;
+}
+
+.footer{
+    text-align:center;
+    margin-top:20px;
+    font-size:14px;
+    color:#777;
+}
+
+.footer a{
+    color:#008080;
+    text-decoration:none;
+}
+
+@media(max-width:768px){
+    .container{
+        flex-direction:column;
+        height:auto;
+    }
+
+    .left{
+        padding:40px 30px;
+    }
+
+    .right{
+        padding:40px 25px;
+    }
+}
