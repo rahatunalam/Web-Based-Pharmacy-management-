@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +7,7 @@
 <title>People's Pharma - Login</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="Style/login.css">
+<link rel="stylesheet" href="{% static 'Style/login.css' %}">
 </head>
 <body>
 
@@ -33,17 +34,22 @@
             <h2>Welcome Back</h2>
             <p>Login to your account</p>
 
-            <form>
+            <form method="POST">
+                {% csrf_token %}
+
                 <div class="input-group">
                     <label>Username</label>
-                    <input type="email" placeholder="Enter your email">
+                    <input type="text" name="username" placeholder="Enter your email" required>
                 </div>
 
                 <div class="input-group">
                     <label>Password</label>
-                    <input type="password" placeholder="Enter your password">
+                    <input type="password" name="password" placeholder="Enter your password" required>
                 </div>
-
+                {% if error %}
+                    <p style="color: rgb(241, 61, 61);">{{ error }}</p>
+                {% endif %}
+                
                 <button type="submit" class="btn">
                     Login
                 </button>
