@@ -19,7 +19,7 @@ def login_view(request):
 
             # Admin redirect
             if user.is_superuser:
-                return redirect('dashboard')
+                return redirect('pharmacy:dashboard')
         
         return render( request,"pharmacy/login.html",{"error": "Invalid username or password"})
         
@@ -28,12 +28,17 @@ def login_view(request):
 @login_required
 def dashboard(request):
     if not request.user.is_authenticated:
-        return redirect('login')
+        return redirect('pharmacy:login')
     return render(request,'pharmacy/index.html')
 
 # Logout view
 def logout_view(request):
     logout(request)
-    return redirect('login') # redirct to login function
+    return redirect('pharmacy:login') # redirct to login function
+
+# Add Medicine
+@login_required
+def add_medicine(request):
+    return render(request,'pharmacy/add-medicine.html')
 
 

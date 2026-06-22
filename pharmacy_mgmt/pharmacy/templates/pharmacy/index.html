@@ -31,7 +31,7 @@
         Dashboard
         <span class="nav__pulse"></span>
       </a></li>
-      <li><a href="add-medicine.html" class="nav__link">
+      <li><a href="{% url 'pharmacy:add_medicine' %}" class="nav__link">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 7v8M7 11h8"/><path d="M21 21l-3.5-3.5" stroke-opacity="0"/></svg>
         Add Medicine
       </a></li>
@@ -47,7 +47,7 @@
 
     <div class="sidebar__spacer"></div>
 
-    <a href="{% url 'logout' %}" class="nav__logout">
+    <a href="{% url 'pharmacy:logout' %}" class="nav__logout">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
       Logout
     </a>
