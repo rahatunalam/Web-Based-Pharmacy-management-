@@ -4,10 +4,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Add Medicine · Peoples Pharma</title>
+<title>Sale Medicines · Peoples Pharma</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'Style/add_medicine.css' %}">
+<link rel="stylesheet" href="{% static 'Style/sale_medicine.css' %}">
 </head>
 <body>
 
@@ -26,22 +26,22 @@
     </div>
 
     <ul class="nav">
-      <li><a href="{% url 'pharmacy:dashboard' %}" class="nav__link">
+      <li><a href="{% url 'pharmacy:sale_medicines' %}" class="nav__link is-active">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+        Sale Medicines
+         <span class="nav__pulse"></span>
+      </a></li>
+      <li><a href="#" class="nav__link">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
         Dashboard
       </a></li>
-      <li><a href="{% url 'pharmacy:add_medicine' %}" class="nav__link is-active">
+      <li><a href="#" class="nav__link">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 7v8M7 11h8"/></svg>
         Add Medicine
-        <span class="nav__pulse"></span>
       </a></li>
-      <li><a href="{% url 'pharmacy:add_salesman' %}" class="nav__link">
+      <li><a href="#" class="nav__link">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
         Add Salesman
-      </a></li>
-      <li><a href="{% url 'pharmacy:delete_medicine' %}" class="nav__link">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
-        Delete Medicines
       </a></li>
     </ul>
 
@@ -58,25 +58,16 @@
 
     <div class="topbar">
       <div>
-        <h2>Add Medicine</h2>
-        <p>Register new stock and keep your inventory up to date</p>
+        <h2>Sale Medicines</h2>
+        <p>Register new invoice and keep your inventory up to date</p>
       </div>
-      <div class="company-select">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
-        <select id="companyName">
-          <option value="">Company name</option>
-          <option>Square Pharmaceuticals</option>
-          <option>Beximco Pharma</option>
-          <option>Incepta Pharmaceuticals</option>
-          <option>ACI Limited</option>
-          <option>Renata Limited</option>
-        </select>
+      <div>
       </div>
     </div>
 
     <!-- Entry form -->
     <section class="form-card">
-      <div class="form-card__title">New stock entry</div>
+      <div class="form-card__title">New Sale entry</div>
       <form id="medicineForm">
         <div class="form-row">
           <div class="field">
@@ -84,24 +75,8 @@
             <input type="text" id="productName" placeholder="e.g. Napa" required>
           </div>
           <div class="field">
-            <label for="productType">Product type</label>
-            <select id="productType" required>
-              <option value="" disabled selected>Select type</option>
-              <option>Tablet</option>
-              <option>Capsule</option>
-              <option>Syrup</option>
-              <option>Injection</option>
-              <option>Drop</option>
-              <option>Ointment</option>
-            </select>
-          </div>
-          <div class="field">
             <label for="quantity">Quantity</label>
             <input type="number" id="quantity" placeholder="50" min="1" required>
-          </div>
-          <div class="field">
-            <label for="price">Price / unit</label>
-            <input type="number" id="price" placeholder="2.00" min="0" step="0.01" required>
           </div>
           <button type="submit" class="btn-add">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -139,15 +114,20 @@
         </tbody>
       </table>
     </section>
-    <form id="dbForm" method="post" action="" >
-      {% csrf_token %}
-      <div id="hiddenInputs"></div>
-      <div style="margin-top: 16px;">
-        <button type="submit" class="btn-add">
-          Save to Database
-        </button>
+    <div class="checkout-actions-row">
+      <div class="field">
+          <label for="discount">Discount (৳ / %)</label>
+          <input type="number" id="discount" placeholder="10" min="0" required>
       </div>
-    </form>
+      
+      <form id="dbForm" method="post" action="">
+        {% csrf_token %}
+        <div id="hiddenInputs"></div>
+        <button type="submit" class="btn-add">
+          Sell to Customer
+        </button>
+      </form>
+    </div>
     
 
   </main>

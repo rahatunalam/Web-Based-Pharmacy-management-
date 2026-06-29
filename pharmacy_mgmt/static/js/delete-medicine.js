@@ -47,7 +47,7 @@ form.addEventListener('submit', e => {
 
   if (!name || !type || !quantity || !price) return;
 
-  const total_price = quantity * price;
+  const total = quantity * price;
 
   // NEW — capture current index before incrementing
   const index = rowCount;
@@ -58,7 +58,7 @@ form.addEventListener('submit', e => {
     <td><span class="pill">${type}</span></td>
     <td class="num">${quantity}</td>
     <td class="num">${currency(price)}</td>
-    <td class="num">${currency(total_price)}</td>
+    <td class="num">${currency(total)}</td>
     <td>
       <button type="button" class="row-delete" aria-label="Remove row">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
@@ -77,7 +77,6 @@ form.addEventListener('submit', e => {
     <input type="hidden" name="medicine_${index}_type"     value="${type}"     data-row="${index}">
     <input type="hidden" name="medicine_${index}_quantity" value="${quantity}" data-row="${index}">
     <input type="hidden" name="medicine_${index}_price"    value="${price}"    data-row="${index}">
-    <input type="hidden" name="medicine_${index}_total_price"    value="${total_price}"    data-row="${index}">
   `;
 
   // NEW — increment the counter and update total_count

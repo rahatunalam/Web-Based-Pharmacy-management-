@@ -1,0 +1,158 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Salesman · Peoples Pharma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'Style/add_salesman.css' %}">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+     <!--<div class="brand__mark">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#14B8A6"><path d="M12 2v20M2 12h20"/></svg>
+      </div>-->
+      <div class="brand__text">
+        <h1>Peoples Pharma</h1>
+        <span>Welcome, {{ request.user.username }}</span>
+      </div>
+    </div>
+
+    <ul class="nav">
+      <li><a href="{% url 'pharmacy:dashboard' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a></li>
+      <li><a href="{% url 'pharmacy:add_medicine' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 7v8M7 11h8"/></svg>
+        Add Medicine
+      </a></li>
+      <li><a href="{% url 'pharmacy:add_salesman' %}" class="nav__link is-active">
+        <!--<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>-->
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add Salesman
+        <span class="nav__pulse"></span>
+      </a></li>
+      <li><a href="{% url 'pharmacy:delete_medicine' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+        Delete Medicines
+      </a></li>
+    </ul>
+
+    <div class="sidebar__spacer"></div>
+
+    <a href="{% url 'pharmacy:logout' %}" class="nav__logout">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Logout
+    </a>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h2>Add Salesman</h2>
+        <p>Register new Salesman or delete a Salesman from store </p>
+      </div>
+      <div>
+      </div>
+    </div>
+
+    <!-- Entry form -->
+    <section class="form-card">
+    <div class="form-card__title">New Salesman Entry</div>
+    <form method="post" action="{% url 'pharmacy:add_salesman' %}">
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="field">
+          <label for="salesman_name">Salesman Name</label>
+          <input type="text" id="salesman_name" name="salesman_name"
+            placeholder="e.g. Karim" required>
+        </div>
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username"
+            placeholder="e.g. karim123" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password"
+            placeholder="Enter password" required>
+        </div>
+        <button type="submit" class="btn-add">
+          Save to Database
+        </button>
+      </div>
+
+      <!-- Show error or success message from Django -->
+      {% if error %}
+        <p style="color:#E2574C; margin-top:10px;">{{ error }}</p>
+      {% endif %}
+      {% if success %}
+        <p style="color:#0E8074; margin-top:10px;">{{ success }}</p>
+      {% endif %}
+
+    </form>
+    </section>
+
+    <!-- Table showing existing salesmen -->
+    <section class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Salesman Name</th>
+            <th>Username</th>
+            <!--<th>Password</th>-->
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for salesman in salesmen %}
+        <tr>
+          <td>{{ salesman.get_full_name|default:salesman.username }}</td>
+          <td>{{ salesman.username }}</td>
+          <!--<td>{{ salesman.password }}</td>-->
+          <td>
+            <form method="post"
+              action="{% url 'pharmacy:delete_salesman' salesman.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="row-delete"
+                onclick="return confirm('Delete {{ salesman.username }}?')">
+                <svg viewBox="0 0 24 24" width="14" height="14"
+                  fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0
+                    0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0
+                    0 1-2-2L4 6"/>
+                </svg>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3"
+            style="text-align:center; color:#94A6A3; padding:30px;">
+            No salesmen added yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      </table>
+    </section>
+    
+
+  </main>
+</div>
+
+<!--<script src="{% static 'js/add-medicine.js' %}"></script>-->
+</body>
+</html>
