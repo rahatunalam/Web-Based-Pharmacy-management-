@@ -114,25 +114,49 @@
         </tbody>
       </table>
     </section>
-    <div class="checkout-actions-row">
-      <div class="field">
-          <label for="discount">Discount (৳ / %)</label>
-          <input type="number" id="discount" placeholder="10" min="0" required>
+
+    <!-- Summary box — shows before/after discount totals -->
+    <div class="summary-card">
+      <div class="summary-row">
+        <span>Subtotal</span>
+        <span id="displaySubtotal">৳0.00</span>
       </div>
-      
-      <form id="dbForm" method="post" action="">
-        {% csrf_token %}
-        <div id="hiddenInputs"></div>
+      <div class="summary-row">
+        <span>Discount (৳)</span>
+        <span id="displayDiscount">৳0.00</span>
+      </div>
+      <div class="summary-row summary-final">
+        <span>Total Payable</span>
+        <span id="displayFinal">৳0.00</span>
+      </div>
+    </div>
+    
+    <form id="dbForm" method="post" 
+      action="{% url 'pharmacy:sale_medicines' %}">
+      {% csrf_token %}
+      <div id="hiddenInputs"></div>
+      <div class="checkout-actions-row">
+        <div class="field">
+          <label for="discount">Discount (৳)</label>
+          <input type="number" id="discount" name="discount"
+            placeholder="0" min="0" value="0">
+        </div>
         <button type="submit" class="btn-add">
           Sell to Customer
         </button>
-      </form>
-    </div>
-    
+      </div>
+      {% if errors %}
+        <div style="margin-top:12px;">
+          {% for error in errors %}
+            <p style="color:#E2574C; font-size:13px;">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </form>
 
   </main>
 </div>
 
-<script src="{% static 'js/add-medicine.js' %}"></script>
+<script src="{% static 'js/sale-medicine.js' %}"></script>
 </body>
 </html>

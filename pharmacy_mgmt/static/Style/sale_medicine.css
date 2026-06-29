@@ -378,29 +378,100 @@ tbody tr:hover{background:#FAFCFC;}
 .row-delete svg{width:14px; height:14px;}
 .row-delete:hover{background:#FBEAE9; color:var(--data-coral);}
 
+.summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  margin-top: 18px;
+  box-shadow: var(--shadow-card);
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--border);
+}
+.summary-row:last-child {
+  border-bottom: none;
+}
+.summary-final {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 4px;
+}
+
+/* Container for the form elements */
 .checkout-actions-row {
-    display: flex;
-    align-items: flex-end;
-    gap: 16px;
-    margin-top: 20px;
-    background: #ffffff;
-    padding: 16px;
-    border-radius: 8px;
-    border: 1px solid #E2E8F0;
-  }
-  .checkout-actions-row .field {
-    flex: 1;
-    margin-bottom: 0;
-  }
-  .checkout-actions-row form {
-    margin: 0;
-    padding: 0;
-  }
-  .checkout-actions-row .btn-add {
-    margin-top: 0;
-    height: 42px; /* Matches standard field heights */
-    white-space: nowrap;
-  }
+  display: flex;
+  align-items: flex-end; /* Aligns button perfectly with the bottom of the input */
+  gap: 1rem;             /* Spacing between the input field and button */
+  width: 100%;
+  max-width: 500px;      /* Restricts maximum row width on larger screens */
+  margin-top: 1rem;
+}
+
+/* Individual field wrapper */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  flex-grow: 1;          /* Lets the input field expand to fill available space */
+}
+
+/* Label design */
+.field label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Input field styling */
+.field input[type="number"] {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #111827;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Input focus state */
+.field input[type="number"]:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Action button (now on the right) */
+.btn-add {
+  height: 42px;          /* Explicit height matches the input field perfectly */
+  padding: 0 1.5rem;     /* Generous horizontal padding for text legibility */
+  font-size: 1rem;
+  font-weight: 500;
+  color: #ffffff;
+  background-color: #16a34a; /* Clear green accent for sales completion */
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;   /* Keeps text strictly on one line */
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+/* Button states */
+.btn-add:hover {
+  background-color: #15803d;
+}
+
+.btn-add:active {
+  transform: scale(0.98);
+}
 /* ============================================================
    Responsive
    ============================================================ */
@@ -424,4 +495,11 @@ tbody tr:hover{background:#FAFCFC;}
   .main{padding:22px;}
   .kpi-row{grid-template-columns:1fr;}
   .form-row{grid-template-columns:1fr;}
+  .checkout-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn-add {
+    width: 100%;
+  }
 }
