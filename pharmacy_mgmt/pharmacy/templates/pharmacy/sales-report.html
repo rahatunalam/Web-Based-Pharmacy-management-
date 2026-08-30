@@ -226,14 +226,13 @@
             <tfoot>
               <tr>
                 <td colspan="8" style="text-align:right;">Total Revenue</td>
-                <td class="num">
-                  ৳{% with total=0 %}
-                    {% for s in sales_data %}
-                      {% comment %}Django templates can't sum decimals natively{% endcomment %}
-                    {% endfor %}
-                  {% endwith %}
-                  <!-- We pass the total from view below -->
-                  {{ sale_total_today|default:"0.00" }}
+                <td class="num" style="color:var(--accent);">
+                   ৳{{ sale_total_today|floatformat:2 }}
+                </td>
+                <td></td>
+                <td></td>
+                <td class="num" style="color:var(--data-coral);">
+                  ৳{{ purchase_total_today|floatformat:2 }}
                 </td>
               </tr>
             </tfoot>
