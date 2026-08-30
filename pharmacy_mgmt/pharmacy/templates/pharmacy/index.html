@@ -43,6 +43,10 @@
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
         Delete Medicines
       </a></li>
+      <li><a href="{% url 'pharmacy:sales_report' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>
+        Sales Report
+      </a></li>
     </ul>
 
     <div class="sidebar__spacer"></div>
@@ -71,44 +75,66 @@
 
     <!-- KPI summary -->
     <section class="kpi-row">
+      <!-- Total Sales -->
       <div class="kpi-card">
         <div>
           <div class="kpi-card__label">Total Sales</div>
-          <div class="kpi-card__value">৳9,450</div>
-          <div class="kpi-card__delta up">▲ 12.4% vs last period</div>
+          <div class="kpi-card__value">৳{{ total_sales|floatformat:2 }}</div>
         </div>
         <div class="kpi-card__icon blue">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+            stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+          </svg>
         </div>
       </div>
+
+      <!-- Total Stock Value -->
       <div class="kpi-card">
         <div>
-          <div class="kpi-card__label">Total Purchases</div>
-          <div class="kpi-card__value">৳4,900</div>
-          <div class="kpi-card__delta down">▼ 3.1% vs last period</div>
+          <div class="kpi-card__label">Stock Value</div>
+          <div class="kpi-card__value">৳{{ total_stock_value|floatformat:2 }}</div>
         </div>
         <div class="kpi-card__icon teal">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+            stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"/>
+          </svg>
         </div>
       </div>
+
+      <!-- Net Profit -->
       <div class="kpi-card">
         <div>
           <div class="kpi-card__label">Net Profit</div>
-          <div class="kpi-card__value">৳4,550</div>
-          <div class="kpi-card__delta up">▲ 18.7% vs last period</div>
+          <div class="kpi-card__value">৳{{ net_profit|floatformat:2 }}</div>
         </div>
         <div class="kpi-card__icon amber">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+            stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 7v5l3 3"/>
+          </svg>
         </div>
       </div>
+
+      <!-- Low Stock -->
       <div class="kpi-card">
         <div>
           <div class="kpi-card__label">Low Stock Items</div>
-          <div class="kpi-card__value">3</div>
-          <div class="kpi-card__delta down">Needs reorder</div>
+          <div class="kpi-card__value">{{ low_stock_count }}</div>
         </div>
         <div class="kpi-card__icon coral">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.86 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.86a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+            stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.3 3.86 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0
+              1.7-3L13.7 3.86a2 2 0 0 0-3.4 0Z"/>
+            <path d="M12 9v4M12 17h.01"/>
+          </svg>
         </div>
       </div>
     </section>
@@ -166,27 +192,49 @@
       <div class="card">
         <div class="card__head">
           <div>
-            <h3>Top Movers</h3>
-            <p>Best selling items this month</p>
+            <h3>Low Stock Alerts</h3>
+            <p>Medicines below 10 units</p>
           </div>
         </div>
-        <div style="display:flex; flex-direction:column; gap:14px; margin-top:4px;">
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-            <span style="font-size:13.5px; font-weight:600;">Napa</span>
-            <span class="pill">55%</span>
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:4px;">
+          {% for medicine in low_stock_items %}
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:13.5px; font-weight:600;">
+                {{ medicine.name }}
+              </span>
+              <span class="pill"
+                style="background:#FBEAE9; color:var(--data-coral);">
+                {{ medicine.quantity }} left
+              </span>
+            </div>
+          {% empty %}
+            <p style="color:var(--ink-faint); font-size:13px;">
+              All medicines are well stocked.
+            </p>
+          {% endfor %}
+        </div>
+      </div>
+      <!-- Top Selling Medicines -->
+      <div class="card">
+        <div class="card__head">
+          <div>
+            <h3>Top Medicines</h3>
+            <p>Best selling by units</p>
           </div>
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-            <span style="font-size:13.5px; font-weight:600;">Napa Extra</span>
-            <span class="pill" style="background:#EAF1FE; color:var(--data-blue);">25%</span>
-          </div>
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-            <span style="font-size:13.5px; font-weight:600;">Famotack</span>
-            <span class="pill" style="background:#FDF2E2; color:var(--data-amber);">15%</span>
-          </div>
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-            <span style="font-size:13.5px; font-weight:600;">Eye Drop</span>
-            <span class="pill" style="background:#FBEAE9; color:var(--data-coral);">5%</span>
-          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:4px;">
+          {% for item in top_medicines %}
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:13.5px; font-weight:600;">
+                {{ item.medicine__name }}
+              </span>
+              <span class="pill">{{ item.units }} sold</span>
+            </div>
+          {% empty %}
+            <p style="color:var(--ink-faint); font-size:13px;">
+              No sales recorded yet.
+            </p>
+          {% endfor %}
         </div>
       </div>
     </section>

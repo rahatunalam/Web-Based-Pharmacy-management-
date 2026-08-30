@@ -1,0 +1,170 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medicine List · Peoples Pharma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'Style/medicine_list.css' %}">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand__text">
+        <h1>Peoples Pharma</h1>
+        <span>{{ request.user.username }}</span>
+      </div>
+    </div>
+    <ul class="nav">
+      <li><a href="{% url 'pharmacy:sale_medicines' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+        Sale Medicines
+      </a></li>
+      <li><a href="{% url 'pharmacy:wholesale' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"/></svg>
+        Wholesale
+      </a></li>
+      <li><a href="{% url 'pharmacy:update_medicine' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><!-- Medical Cross --><path d="M12 8v8M8 12h8"/><!-- Refresh Loop --><path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/></svg>
+        Update Medicine
+      </a></li>
+      <li><a href="{% url 'pharmacy:s_add_medicine' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 7v8M7 11h8"/></svg>
+        Add Medicine
+      </a></li>
+      <li><a href="{% url 'pharmacy:medicine_list' %}" class="nav__link is-active">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/></svg>
+        Medicine List
+        <span class="nav__pulse"></span>
+      </a></li>
+    </ul>
+    <div class="sidebar__spacer"></div>
+    <a href="{% url 'pharmacy:logout' %}" class="nav__logout">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Logout
+    </a>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h2>Medicine List</h2>
+        <p>Browse, search and filter your full inventory</p>
+      </div>
+    </div>
+
+    <!-- Filter bar — GET form so filters stay in the URL -->
+    <form method="get" action="{% url 'pharmacy:medicine_list' %}">
+      <div class="filter-bar">
+
+        <!-- Search with autocomplete -->
+        <label>Search</label>
+        <div class="search-wrapper">
+          <input
+            type="text"
+            id="searchInput"
+            name="search"
+            placeholder="Type a medicine name..."
+            value="{{ search }}"
+            autocomplete="off"
+          >
+          <div class="suggestions-box" id="suggestionsBox"></div>
+        </div>
+
+        <!-- Company dropdown filter -->
+        <label>Company</label>
+        <select name="company" id="companyFilter" onchange="this.form.submit()">
+          <option value="">All Companies</option>
+          {% for company in companies %}
+            <option value="{{ company }}"
+              {% if company == selected_company %}selected{% endif %}>
+              {{ company }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <button type="submit" class="btn-add">Search</button>
+
+        <!-- Clear filters link — only show when filters are active -->
+        {% if search or selected_company %}
+          <a href="{% url 'pharmacy:medicine_list' %}"
+            style="font-size:13px; color:var(--accent); font-weight:600;">
+            Clear filters
+          </a>
+        {% endif %}
+
+        <span class="result-count">
+          {{ medicines|length }} result{{ medicines|length|pluralize }}
+        </span>
+      </div>
+    </form>
+
+    <!-- Medicine table -->
+    <section class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Product Name</th>
+            <th>Company</th>
+            <th>Product Type</th>
+            <th class="num">Quantity</th>
+            <th class="num">Price / Unit</th>
+            <th class="num">Total Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for medicine in medicines %}
+          <tr>
+            <td style="color:var(--ink-faint); font-size:12px;">
+              {{ forloop.counter }}
+            </td>
+            <td style="font-weight:600;">{{ medicine.name }}</td>
+            <td>{{ medicine.company }}</td>
+            <td><span class="pill">{{ medicine.product_type }}</span></td>
+            <td class="num">
+              <!-- Low stock warning -->
+              {{ medicine.quantity }}
+              {% if medicine.quantity < 10 %}
+                <span style="color:#E2574C; font-size:11px; margin-left:4px;">
+                  ⚠ Low
+                </span>
+              {% endif %}
+            </td>
+            <td class="num">৳{{ medicine.price_per_unit }}</td>
+            <td class="num">
+              ৳{{ medicine.total_price }}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7"
+              style="text-align:center; color:var(--ink-faint);
+                     padding:40px; font-style:italic;">
+              {% if search or selected_company %}
+                No medicines found matching your filters.
+              {% else %}
+                No medicines in the database yet.
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+</div>
+
+<script src="{% static 'js/medicine-list.js' %}"></script>
+
+</body>
+</html>

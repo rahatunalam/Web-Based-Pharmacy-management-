@@ -2,38 +2,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sale Medicines · Peoples Pharma</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'Style/sale_medicine.css' %}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wholesale · Peoples Pharma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'Style/sale_medicine.css' %}">
 </head>
 <body>
 
 <div class="app">
 
-  <!-- ============ SIDEBAR ============ -->
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="brand">
-     <!--<div class="brand__mark">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#14B8A6"><path d="M12 2v20M2 12h20"/></svg>
-      </div>-->
       <div class="brand__text">
         <h1>Peoples Pharma</h1>
         <span>Welcome, {{ request.user.username }}</span>
       </div>
     </div>
-
     <ul class="nav">
-      <li><a href="{% url 'pharmacy:sale_medicines' %}" class="nav__link is-active">
+      <li><a href="{% url 'pharmacy:sale_medicines' %}" class="nav__link">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
         Sale Medicines
-         <span class="nav__pulse"></span>
       </a></li>
-      <li><a href="{% url 'pharmacy:wholesale' %}" class="nav__link">
+      <li><a href="{% url 'pharmacy:wholesale' %}" class="nav__link is-active">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"/></svg>
         Wholesale
+        <span class="nav__pulse"></span>
       </a></li>
       <li><a href="{% url 'pharmacy:update_medicine' %}" class="nav__link">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><!-- Medical Cross --><path d="M12 8v8M8 12h8"/><!-- Refresh Loop --><path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/></svg>
@@ -48,49 +44,68 @@
         Medicine List
       </a></li>
     </ul>
-
     <div class="sidebar__spacer"></div>
-
     <a href="{% url 'pharmacy:logout' %}" class="nav__logout">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
       Logout
     </a>
   </aside>
 
-  <!-- ============ MAIN ============ -->
+  <!-- MAIN -->
   <main class="main">
 
     <div class="topbar">
       <div>
-        <h2>Sale Medicines</h2>
-        <p>Register new invoice and keep your inventory up to date</p>
-      </div>
-      <div>
+        <h2>Wholesale</h2>
+        <p>Record bulk sales to wholesale buyers</p>
       </div>
     </div>
 
-    <!-- Entry form -->
+    <!-- Buyer name — collected once for the whole transaction -->
     <section class="form-card">
-      <div class="form-card__title">New Sale entry</div>
+      <div class="form-card__title">Buyer Information</div>
+      <div class="form-row" style="grid-template-columns: 1fr;">
+        <div class="field">
+          <label for="buyerName">Buyer / Company Name</label>
+          <input type="text" id="buyerName"
+            placeholder="e.g. City Pharmacy Ltd." required>
+        </div>
+      </div>
+    </section>
+
+    <!-- Medicine entry form -->
+    <section class="form-card">
+      <div class="form-card__title">Add Medicines to Order</div>
       <form id="medicineForm">
         <div class="form-row">
           <div class="field">
-            <label for="productName">Product name</label>
-            <input type="text" id="productName" placeholder="e.g. Napa" required>
+            <label for="productName">Product Name</label>
+            <input type="text" id="productName"
+              placeholder="e.g. Napa" autocomplete="off" required>
           </div>
           <div class="field">
-            <label for="quantity">Quantity</label>
-            <input type="number" id="saleQuantity" placeholder="50" min="1" required>
+            <label for="saleQuantity">Quantity</label>
+            <input type="number" id="saleQuantity"
+              placeholder="100" min="1" required>
+          </div>
+          <div class="field">
+            <label for="customPrice">Price / Unit (optional)</label>
+            <input type="number" id="customPrice"
+              placeholder="Leave blank for default" min="0" step="0.01">
           </div>
           <button type="submit" class="btn-add">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+              stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
             Add
           </button>
         </div>
       </form>
     </section>
 
-    <!-- Inventory table -->
+    <!-- Order table -->
     <section class="table-card">
       <table>
         <thead>
@@ -104,22 +119,18 @@
           </tr>
         </thead>
         <tbody id="medicineTableBody">
-          <!--<tr>
-            <td>Napa</td>
-            <td><span class="pill">Tablet</span></td>
-            <td class="num">50</td>
-            <td class="num">৳2.00</td>
-            <td>
-              <button class="row-delete" aria-label="Remove row">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
-              </button>
+          <tr id="emptyRow">
+            <td colspan="6"
+              style="text-align:center; color:var(--ink-faint);
+                     padding:30px; font-style:italic;">
+              No medicines added yet.
             </td>
-          </tr> -->
+          </tr>
         </tbody>
       </table>
     </section>
 
-    <!-- Summary box — shows before/after discount totals -->
+    <!-- Summary -->
     <div class="summary-card">
       <div class="summary-row">
         <span>Subtotal</span>
@@ -134,33 +145,40 @@
         <span id="displayFinal">৳0.00</span>
       </div>
     </div>
-    
-    <form id="dbForm" method="post" 
-      action="{% url 'pharmacy:sale_medicines' %}">
+
+    <!-- dbForm — wraps all hidden inputs, buyer name, discount, submit -->
+    <form id="dbForm" method="post"
+      action="{% url 'pharmacy:wholesale' %}">
       {% csrf_token %}
+
       <div id="hiddenInputs"></div>
+
       <div class="checkout-actions-row">
         <div class="field">
           <label for="discount">Discount (৳)</label>
-          <input type="number" id="discount" name="discount"
+          <input type="number" id="discount"
             placeholder="0" min="0" value="0">
         </div>
-        <button type="submit" class="btn-sale">
-          Sell to Customer
+        <button type="submit" class="btn-add">
+          Confirm Wholesale Order
         </button>
       </div>
+
       {% if errors %}
         <div style="margin-top:12px;">
           {% for error in errors %}
-            <p style="color:#E2574C; font-size:13px;">{{ error }}</p>
+            <p style="color:#E2574C; font-size:13px; margin-top:4px;">
+              {{ error }}
+            </p>
           {% endfor %}
         </div>
       {% endif %}
+
     </form>
 
   </main>
 </div>
 
-<script src="{% static 'js/sale-medicine.js' %}"></script>
+<script src="{% static 'js/wholesale.js' %}"></script>
 </body>
 </html>

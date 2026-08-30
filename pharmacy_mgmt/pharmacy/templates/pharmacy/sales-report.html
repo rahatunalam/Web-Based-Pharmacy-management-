@@ -1,0 +1,360 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales Report · Peoples Pharma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'Style/add_medicine.css' %}">
+  <style>
+    /* Tab bar */
+    .tab-bar {
+      display: inline-flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px;
+      box-shadow: var(--shadow-card);
+    }
+    .tab-bar a {
+      display: inline-block;
+      padding: 9px 22px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      border-radius: 999px;
+      text-decoration: none;
+      transition: background .15s ease, color .15s ease;
+    }
+    .tab-bar a.is-active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: var(--shadow-pop);
+    }
+    .tab-bar a:not(.is-active):hover { color: var(--ink); }
+
+    /* Section heading */
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 14px 18px;
+      background: var(--accent-soft);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Summary strip */
+    .summary-strip {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .strip-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px 20px;
+      box-shadow: var(--shadow-card);
+      flex: 1;
+      min-width: 150px;
+    }
+    .strip-card__label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink-faint);
+    }
+    .strip-card__value {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .strip-card__value.teal  { color: var(--accent); }
+    .strip-card__value.blue  { color: var(--data-blue); }
+    .strip-card__value.coral { color: var(--data-coral); }
+    .strip-card__value.amber { color: var(--data-amber); }
+
+    /* Highlight current day/month row */
+    tr.is-current td {
+      background: var(--accent-soft);
+      font-weight: 700;
+      color: var(--accent-dark);
+    }
+
+    .report-section { margin-bottom: 28px; }
+
+    tfoot td {
+      font-weight: 700;
+      color: var(--accent-dark);
+      background: var(--accent-soft);
+      border-top: 2px solid var(--border);
+      padding: 12px 18px;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand__text">
+        <h1>Peoples Pharma</h1>
+        <span>Admin</span>
+      </div>
+    </div>
+    <ul class="nav">
+      <li><a href="{% url 'pharmacy:dashboard' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a></li>
+      <li><a href="{% url 'pharmacy:add_medicine' %}" class="nav__link ">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 7v8M7 11h8"/></svg>
+        Add Medicine
+      </a></li>
+      <li><a href="{% url 'pharmacy:add_salesman' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add Salesman
+      </a></li>
+      <li><a href="{% url 'pharmacy:delete_medicine' %}" class="nav__link ">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+        Delete Medicines
+      </a></li>
+      <li><a href="{% url 'pharmacy:sales_report' %}" class="nav__link is-active">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>
+        Sales Report
+        <span class="nav__pulse"></span>
+      </a></li>
+    </ul>
+    <div class="sidebar__spacer"></div>
+    <a href="{% url 'pharmacy:logout' %}" class="nav__logout">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Logout
+    </a>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h2>Sales Report</h2>
+        <p>Overview of sales, purchases and stock distribution</p>
+      </div>
+      <!-- Tab bar — each link appends ?tab= to the URL -->
+      <div class="tab-bar">
+        <a href="?tab=today"
+          class="{% if tab == 'today' %}is-active{% endif %}">Today</a>
+        <a href="?tab=weekly"
+          class="{% if tab == 'weekly' %}is-active{% endif %}">Weekly</a>
+        <a href="?tab=monthly"
+          class="{% if tab == 'monthly' %}is-active{% endif %}">Monthly</a>
+        <a href="?tab=yearly"
+          class="{% if tab == 'yearly' %}is-active{% endif %}">Yearly</a>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         TODAY TAB
+    ═══════════════════════════════ -->
+    {% if tab == 'today' %}
+
+      <!-- Summary strip -->
+      <div class="summary-strip">
+        <div class="strip-card">
+          <div class="strip-card__label">Sales Revenue</div>
+          <div class="strip-card__value teal">
+            ৳{% with total=sales_data.aggregate_total %}
+              {{ sales_data.0.final_price|default:"0" }}
+            {% endwith %}
+            ৳{% for s in sales_data %}{% if forloop.last %}{% endif %}{% endfor %}
+            <!-- Use template tag to sum -->
+            0.00
+          </div>
+        </div>
+      </div>
+
+      <!-- SALES TABLE -->
+      <div class="report-section">
+        <div class="table-card">
+          <div class="section-title">Sales — {{ today }}</div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Time</th>
+                <th>Medicine</th>
+                <th>Salesman</th>
+                <th class="num">Qty</th>
+                <th class="num">Price/Unit</th>
+                <th class="num">Subtotal</th>
+                <th class="num">Discount</th>
+                <th class="num">Final Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sale in sales_data %}
+              <tr>
+                <td style="color:var(--ink-faint);">{{ forloop.counter }}</td>
+                <td>{{ sale.sold_at|time:"h:i A" }}</td>
+                <td style="font-weight:600;">{{ sale.medicine.name }}</td>
+                <td>{{ sale.salesman.get_full_name|default:sale.salesman.username }}</td>
+                <td class="num">{{ sale.quantity_sold }}</td>
+                <td class="num">৳{{ sale.price_per_unit }}</td>
+                <td class="num">৳{{ sale.item_total }}</td>
+                <td class="num">৳{{ sale.discount }}</td>
+                <td class="num" style="font-weight:700; color:var(--accent);">
+                  ৳{{ sale.final_price }}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="9" style="text-align:center; color:var(--ink-faint); padding:30px;">
+                  No sales recorded today.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            {% if sales_data %}
+            <tfoot>
+              <tr>
+                <td colspan="8" style="text-align:right;">Total Revenue</td>
+                <td class="num">
+                  ৳{% with total=0 %}
+                    {% for s in sales_data %}
+                      {% comment %}Django templates can't sum decimals natively{% endcomment %}
+                    {% endfor %}
+                  {% endwith %}
+                  <!-- We pass the total from view below -->
+                  {{ sale_total_today|default:"0.00" }}
+                </td>
+              </tr>
+            </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+
+      <!-- WHOLESALE TABLE -->
+      <div class="report-section">
+        <div class="table-card">
+          <div class="section-title">Wholesale — {{ today }}</div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Time</th>
+                <th>Buyer</th>
+                <th>Medicine</th>
+                <th>Salesman</th>
+                <th class="num">Qty</th>
+                <th class="num">Price/Unit</th>
+                <th class="num">Discount</th>
+                <th class="num">Final Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for w in wholesale_data %}
+              <tr>
+                <td style="color:var(--ink-faint);">{{ forloop.counter }}</td>
+                <td>{{ w.sold_at|time:"h:i A" }}</td>
+                <td style="font-weight:600;">{{ w.buyer_name }}</td>
+                <td>{{ w.medicine.name }}</td>
+                <td>{{ w.salesman.get_full_name|default:w.salesman.username }}</td>
+                <td class="num">{{ w.quantity_sold }}</td>
+                <td class="num">৳{{ w.price_per_unit }}</td>
+                <td class="num">৳{{ w.discount }}</td>
+                <td class="num" style="font-weight:700; color:var(--data-blue);">
+                  ৳{{ w.final_price }}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="9" style="text-align:center; color:var(--ink-faint); padding:30px;">
+                  No wholesale orders today.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PURCHASES TABLE -->
+      <div class="report-section">
+        <div class="table-card">
+          <div class="section-title">Purchases (Stock Added) — {{ today }}</div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Time</th>
+                <th>Medicine</th>
+                <th>Company</th>
+                <th>Added By</th>
+                <th class="num">Qty</th>
+                <th class="num">Price/Unit</th>
+                <th class="num">Total Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in purchase_data %}
+              <tr>
+                <td style="color:var(--ink-faint);">{{ forloop.counter }}</td>
+                <td>{{ p.purchased_at|time:"h:i A" }}</td>
+                <td style="font-weight:600;">{{ p.medicine.name }}</td>
+                <td>{{ p.company|default:"—" }}</td>
+                <td>{{ p.added_by.get_full_name|default:p.added_by.username }}</td>
+                <td class="num">{{ p.quantity }}</td>
+                <td class="num">৳{{ p.price_per_unit }}</td>
+                <td class="num" style="font-weight:700; color:var(--data-coral);">
+                  ৳{{ p.total_cost }}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" style="text-align:center; color:var(--ink-faint); padding:30px;">
+                  No stock added today.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    {% endif %}
+
+    <!-- ═══════════════════════════════
+         WEEKLY / MONTHLY / YEARLY TABS
+         (shared table structure)
+    ═══════════════════════════════ -->
+    {% if tab == 'weekly' or tab == 'monthly' or tab == 'yearly' %}
+
+      {% if tab == 'weekly' %}
+        {% with data=weekly_data period_label="Day" %}
+          {% include "pharmacy/report_table.html" %}
+        {% endwith %}
+      {% elif tab == 'monthly' %}
+        {% with data=monthly_data period_label="Date" %}
+          {% include "pharmacy/report_table.html" %}
+        {% endwith %}
+      {% elif tab == 'yearly' %}
+        {% with data=yearly_data period_label="Month" %}
+          {% include "pharmacy/report_table.html" %}
+        {% endwith %}
+      {% endif %}
+
+    {% endif %}
+
+  </main>
+</div>
+</body>
+</html>

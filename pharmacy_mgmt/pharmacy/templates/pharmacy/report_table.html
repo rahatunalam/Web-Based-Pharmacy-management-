@@ -1,0 +1,52 @@
+{% load static %}
+
+<!-- Summary strip -->
+<div class="summary-strip">
+  <div class="strip-card">
+    <div class="strip-card__label">Total Sales</div>
+    <div class="strip-card__value teal">
+      ৳{% for row in data %}{{ row.sale_amount|add:0 }}{% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="report-section">
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>{{ period_label }}</th>
+          <th class="num">Sale Qty</th>
+          <th class="num">Sale Revenue</th>
+          <th class="num">Wholesale Qty</th>
+          <th class="num">Wholesale Revenue</th>
+          <th class="num">Purchase Qty</th>
+          <th class="num">Purchase Cost</th>
+          <th class="num">Net</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data %}
+        <tr class="{% if row.is_today or row.is_current %}is-current{% endif %}">
+          <td style="font-weight:600;">{{ row.label|default:row.day_name }}</td>
+          <td class="num">{{ row.sale_qty }}</td>
+          <td class="num" style="color:var(--accent);">
+            ৳{{ row.sale_amount|floatformat:2 }}
+          </td>
+          <td class="num">{{ row.wholesale_qty }}</td>
+          <td class="num" style="color:var(--data-blue);">
+            ৳{{ row.wholesale_amount|floatformat:2 }}
+          </td>
+          <td class="num">{{ row.purchase_qty }}</td>
+          <td class="num" style="color:var(--data-coral);">
+            ৳{{ row.purchase_amount|floatformat:2 }}
+          </td>
+          <td class="num" style="font-weight:700;">
+            ৳{{ row.net|floatformat:2 }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

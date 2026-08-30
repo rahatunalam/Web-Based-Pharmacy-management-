@@ -1,10 +1,16 @@
 from django.shortcuts import render,redirect,get_object_or_404
 from django.contrib.auth import authenticate,login,logout
 from django.contrib.auth.decorators import login_required
+from django.db.models import Sum,Count,F
+from django.db.models.functions import TruncMonth,TruncYear
+from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib import messages
 from .forms import LoginForm
-from .models import Medicine
+from .models import Medicine,Sale,Wholesale,Purchase
+from datetime import timedelta,date
+import calendar
+import json
 
 # Create your views here.
 # Login view
@@ -31,9 +37,63 @@ def login_view(request):
 
 @login_required
 def dashboard(request):
-    if not request.user.is_authenticated:
-        return redirect('pharmacy:login')
-    return render(request,'pharmacy/index.html')
+    # ── KPI Cards ──────────────────────────────────────────
+
+    # Total revenue from all sales (final price after discount)
+    total_sales = float(Sale.objects.aggregate(total=Sum('final_price'))['total'] or 0
+)
+    # Total stock value (quantity × price per unit for every medicine)
+    total_stock_value = float(Medicine.objects.aggregate(total=Sum(F('quantity')*F('price_per_unit')))['total'] or 0)
+
+    # Net profit = revenue - stock cost
+    net_profit = total_sales - total_stock_value
+
+    # Count medicines with quantity below 10
+    low_stock_count = Medicine.objects.filter(quantity__lt = 10).count()
+
+    # ── Donut Chart — stock distribution by medicine ────────
+    # Groups sold quantity by medicine name
+    distribution_qs = Sale.objects.values('medicine__name').annotate(units=Sum('quantity_sold')).order_by('-units')[:6]
+
+    distribution_chart = {
+        'labels': [row['medicine__name'] for row in distribution_qs],
+        'values': [row['units'] for row in distribution_qs],
+    }
+
+    # ── Bar Chart — monthly sale quantity ───────────────────
+    monthly_sales_qs = Sale.objects.annotate(month=TruncMonth('sold_at')).values('month').annotate(units=Sum('quantity_sold')).order_by('month')
+    monthly_chart={
+        'labels': [row['month'].strftime('%b %Y') for row in monthly_sales_qs],
+        'values': [row['units'] for row in monthly_sales_qs],
+    }
+
+    # ── Line Chart — yearly revenue trend ──────────────────
+    yearly_qs = Sale.objects.annotate(year=TruncYear('sold_at')).values('year').annotate(revenue=Sum('final_price')).order_by('year')
+    yearly_chart = {
+        'labels': [row['year'].strftime('%Y') for row in yearly_qs],
+        'values': [float(row['revenue']) for row in yearly_qs],
+    }
+
+    # ── Low stock medicines for the alert card ──────────────
+    low_stock_items = Medicine.objects.filter(quantity__lt=10).order_by('quantity')
+
+    # ── Top selling medicines ───────────────────────────────
+    top_medicines = Sale.objects.values('medicine__name').annotate(units=Sum('quantity_sold')).order_by('-units')[:5]
+
+    context = {
+        'total_sales':       total_sales,
+        'total_stock_value': total_stock_value,
+        'net_profit':        net_profit,
+        'low_stock_count':   low_stock_count,
+        'low_stock_items':   low_stock_items,
+        'top_medicines':     top_medicines,
+
+        # Serialize to JSON so Chart.js can read them in the template
+        'distribution_chart': json.dumps(distribution_chart),
+        'monthly_chart':      json.dumps(monthly_chart),
+        'yearly_chart':       json.dumps(yearly_chart),
+    }
+    return render(request,'pharmacy/index.html',context)
 
 # Logout view
 def logout_view(request):
@@ -56,6 +116,45 @@ def add_medicine(request):
             total_price = request.POST.get(f'medicine_{i}_total_price')
 
             if name and type_ and quantity and price:
+                quantity= int(quantity)
+                price =  float(price)
+                 
+                medicine = Medicine.objects.create(
+                    name=name,
+                    company=company, 
+                    product_type=type_,
+                    quantity=int(quantity),
+                    price_per_unit=float(price),
+                    total_price =float(total_price)
+                )
+
+                Purchase.objects.create(
+                    medicine=medicine,
+                    company=company or '',
+                    quantity=quantity,
+                    price_per_unit=price,
+                    total_cost=quantity * price,
+                    added_by=request.user,
+                )
+        return redirect('pharmacy:add_medicine')
+                 
+    return render(request,'pharmacy/add-medicine.html')
+
+@login_required
+def s_add_medicine(request):
+
+    if request.method == 'POST':
+        total_count = int(request.POST.get('total_count',0))
+
+        for i in range(total_count):
+            name = request.POST.get(f'medicine_{i}_name')
+            company = request.POST.get(f'medicine_{i}_company')
+            type_ = request.POST.get(f'medicine_{i}_type')
+            quantity = request.POST.get(f'medicine_{i}_quantity')
+            price = request.POST.get(f'medicine_{i}_price')
+            total_price = request.POST.get(f'medicine_{i}_total_price')
+
+            if name and type_ and quantity and price:
                  Medicine.objects.create(
                     name=name,
                     company=company, 
@@ -64,9 +163,9 @@ def add_medicine(request):
                     price_per_unit=float(price),
                     total_price =float(total_price)
                 )
-        return redirect('pharmacy:add_medicine')
+        return redirect('pharmacy:s_add_medicine')
                  
-    return render(request,'pharmacy/add-medicine.html')
+    return render(request,'pharmacy/s-add-medicine.html')
 
 @login_required
 def delete_medicine(request):
@@ -136,6 +235,226 @@ def delete_salesman(request, pk):
 
 @login_required
 def sale_medicines(request):
-    if not request.user.is_authenticated:
-        return redirect('pharmacy:login')
+    if request.method == 'POST':
+        total_count = int(request.POST.get('total_count',0))
+        discount = float(request.POST.get('discount', 0))
+        subtotal = float(request.POST.get('subtotal',0))
+        final_price = float(request.POST.get('final_price',0))
+        errors = []
+
+        for i in range(total_count):
+            name =  request.POST.get(f'sale_{i}_name')
+            quantity   = int(request.POST.get(f'sale_{i}_quantity', 0))
+            price      = float(request.POST.get(f'sale_{i}_price', 0))
+            item_total = float(request.POST.get(f'sale_{i}_total', 0))
+
+            try:
+                medicine = Medicine.objects.get(name__iexact=name)
+            except:
+                errors.append(f"Medicine '{name}' not found.")
+                continue
+
+            if medicine.quantity<quantity:
+                errors.append(
+                    f"Not enough stock for '{name}.'"
+                    f"Available: {medicine.quantity}, Requested: {quantity}"
+                )
+                continue
+
+            Sale.objects.create(
+                    medicine=medicine,
+                    salesman=request.user,
+                    quantity_sold=quantity,
+                    price_per_unit=price,
+                    item_total=item_total,
+                    subtotal=subtotal,
+                    discount=discount,
+                    final_price=final_price,
+            )
+
+            medicine.quantity -= quantity
+            medicine.save()
+
+
+        if errors:
+            return render(request,'pharmacy/sale-medicine.html',{'errors':errors})
+
+        return redirect('pharmacy:sale_medicines')
+        
     return render(request,'pharmacy/sale-medicine.html')
+
+from django.http import JsonResponse
+
+@login_required
+def get_medicine_price(request):
+    name = request.GET.get('name', '').strip()
+    try:
+        medicine = Medicine.objects.get(name__iexact=name)
+        return JsonResponse({
+            'found': True,
+            'price': float(medicine.price_per_unit),
+            'stock': medicine.quantity,
+            'product_type': medicine.product_type,
+        })
+    except Medicine.DoesNotExist:
+        return JsonResponse({'found': False})
+
+@login_required
+def wholesale(request):
+    if request.method == 'POST':
+        buyer_name = request.POST.get('buyer_name','').strip()
+        total_count = int(request.POST.get('total_count',0))
+        discount = float(request.POST.get('discount',0))
+        subtotal = float(request.POST.get('subtotal',0))
+        final_price = float(request.POST.get('final_price',0))
+        errors = []
+
+        # Buyer name is required
+        if not buyer_name:
+            return render(request,'pharmacy/wholesale.html',{'errors': ['Buyer name is required']})
+
+        for i in range(total_count):
+            name = request.POST.get(f'sale_{i}_name')
+            quantity = request.POST.get(f'sale_{i}_quantity')
+            price = request.POST.get(f'sale_{i}_price')
+            item_total = request.POST.get(f'sale_{i}_total')
+
+            if not name or quantity or not price:
+                continue
+
+            quantity = int(quantity)
+            price = float(price)
+            item_total = float(item_total)
+
+            try:
+                medicine = Medicine.objects.get(name__iexact=name)
+            except Medicine.DoesNotExist:
+                errors.append(f"Medicine '{name}' not found.")
+                continue
+
+            if medicine.quantity<quantity:
+                errors.append(
+                    f"Not enough stock for '{name}.'"
+                    f"Available: {medicine.quantity}, Requested: {quantity}"
+                )
+                continue
+            Wholesale.objects.create(
+                buyer_name = buyer_name,
+                medicine=medicine,
+                salesman=request.user,
+                quantity_sold=quantity,
+                price_per_unit=price,
+                item_total=item_total,
+                subtotal=subtotal,
+                discount=discount,
+                final_price=final_price,
+            )
+            
+            medicine.quantity -= quantity
+            medicine.save()
+
+        if errors:
+            return render(request,'pharamacy/wholesale.html', {'errors': errors})
+
+        return redirect('pharmacy:wholesale')
+
+    return render(request,'pharmacy/wholesale.html')
+
+
+@login_required
+def get_wholesale_price(request):
+    name = request.GET.get('name', '').strip()
+    try:
+        medicine = Medicine.objects.get(name__iexact=name)
+        return JsonResponse({
+            'found': True,
+            'price': float(medicine.price_per_unit),
+            'stock': medicine.quantity,
+            'product_type': medicine.product_type,
+        })
+    except Medicine.DoesNotExist:
+        return JsonResponse({'found': False})
+    
+@login_required
+def update_medicine(request):
+    if request.method == 'POST':
+            total_count = int(request.POST.get('total_count',0))
+    
+            for i in range(total_count):
+                name = request.POST.get(f'medicine_{i}_name')
+                company = request.POST.get(f'medicine_{i}_company')
+                type_ = request.POST.get(f'medicine_{i}_type')
+                quantity = request.POST.get(f'medicine_{i}_quantity')
+                price = request.POST.get(f'medicine_{i}_price')
+                total_price = request.POST.get(f'medicine_{i}_total_price')
+    
+                if name and type_ and quantity and price:
+                     Medicine.objects.create(
+                        name=name,
+                        company=company, 
+                        product_type=type_,
+                        quantity=int(quantity),
+                        price_per_unit=float(price),
+                        total_price =float(total_price)
+                    )
+            return redirect('pharmacy:update_medicine')
+                     
+    return render(request,'pharmacy/update-medicine.html')
+
+@login_required
+def medicine_list(request):
+    search = request.GET.get('search','').strip()
+    company = request.GET.get('company','').strip()
+
+    medicines = Medicine.objects.all()
+
+    if search:
+        medicines = medicines.filter(name__icontains=search)
+
+    if company:
+        medicines = medicines.filter(company__iexact=company)
+
+    # Get unique company names for the dropdown filter
+    companies = Medicine.objects.values_list(
+        'company', flat=True
+    ).distinct().order_by('company')
+
+    return render(request, 'pharmacy/medicine-list.html', {
+        'medicines': medicines,
+        'companies': companies,
+        'search': search,
+        'selected_company': company,
+    })
+
+@login_required
+def medicine_suggestions(request):
+    query = request.GET.get('q', '').strip()
+    suggestions = []
+
+    if query:
+        matches = Medicine.objects.filter(
+            name__icontains=query
+        ).values_list('name', flat=True).distinct()[:8]
+        suggestions = list(matches)
+
+    return JsonResponse({'suggestions': suggestions})
+
+@login_required
+def sales_report(request):
+    tab  = request.GET.get('tab','today')
+    today = timezone.localdate()
+
+    sales_data = None
+    wholesale_data = None
+    purrchase_data = None
+    weekly_data  = None
+    monthly_data = None
+    yearly_data = None
+
+    if tab == 'today':
+        sales_data = Sale.objects.filter(sold_at__date=today).select_related('medicine','salesman').order_by('sold_at')
+        wholesale_data = Wholesale.objects.filter(sold_at__date=today).select_related('medicine','salesman').order_by('sold_at')
+        purrchase_data = Purchase.objects.filter(sold_at__date=today).select_related('medicine','salesman').order_by('sold_at')
+
+
+    return render(request,'pharmacy/sales-report.html')
