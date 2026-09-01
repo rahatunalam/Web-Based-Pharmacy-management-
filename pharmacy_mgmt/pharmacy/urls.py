@@ -21,5 +21,5 @@ urlpatterns = [
     path('update-medicine/',views.update_medicine,name='update_medicine'),
     path('medicine-list/',views.medicine_list,name='medicine_list'),
     path('medicine-suggestion/',views.medicine_suggestions,name='medicine_suggestion'),
-    path('sales-list/',views.sales_report,name='sales_report'),
+    path('sales-report/',views.sales_report,name='sales_report'),
 ]

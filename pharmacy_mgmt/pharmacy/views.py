@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate,login,logout
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum,Count,F
 from django.db.models.functions import TruncMonth,TruncYear
+from django.template import context
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -446,15 +447,134 @@ def sales_report(request):
 
     sales_data = None
     wholesale_data = None
-    purrchase_data = None
+    purchase_data = None
     weekly_data  = None
     monthly_data = None
     yearly_data = None
 
+    sale_total_today      = 0
+    wholesale_total_today = 0
+    purchase_total_today  = 0
+
     if tab == 'today':
         sales_data = Sale.objects.filter(sold_at__date=today).select_related('medicine','salesman').order_by('sold_at')
         wholesale_data = Wholesale.objects.filter(sold_at__date=today).select_related('medicine','salesman').order_by('sold_at')
-        purrchase_data = Purchase.objects.filter(sold_at__date=today).select_related('medicine','salesman').order_by('sold_at')
+        purchase_data = Purchase.objects.filter(purchased_at__date=today).select_related('medicine','added_by').order_by('purchased_at')
 
+        sale_total_today = float(sales_data.aggregate(t=Sum('final_price'))['t'] or 0)
+        wholesale_total_today = float(wholesale_data.aggregate(t=Sum('final_price'))['t'] or 0)
+        purchase_total_today = float(purchase_data.aggregate(t=Sum('total_cost'))['t'] or 0)
 
-    return render(request,'pharmacy/sales-report.html')
+    elif tab == 'weekly':
+        # Find most recent Saturday
+        # Python weekday(): Mon=0 Tue=1 Wed=2 Thu=3 Fri=4 Sat=5 Sun=6
+        days_since_saturday = (today.weekday()-5)%7
+        week_start = today - timedelta(days=days_since_saturday)
+
+        day_names = [
+            'Saturday', 'Sunday', 'Monday',
+            'Tuesday', 'Wednesday', 'Thursday', 'Friday'
+        ]
+
+        weekly_data = []
+        for i in range(7):
+            day = week_start+ timedelta(days=i)
+
+            day_sales = Sale.objects.filter(sold_at__date=day).aggregate(amount=Sum('final_price'),qty=Sum('quantity_sold'))
+            day_wholesale = Wholesale.objects.filter(sold_at__date=day).aggregate(amount=Sum('final_price'),qty=Sum('quantity_sold'))
+            day_purchases = Purchase.objects.filter(purchased_at__date=day).aggregate(amount=Sum('total_cost'),qty=Sum('quantity'))
+
+            sale_amt = float(day_sales['amount'] or 0)
+            wholesale_amt = float(day_wholesale['amount'] or 0)
+            purchase_amt = float(day_purchases['amount'] or 0)
+
+            weekly_data.append({
+                'day_name':         day_names[i],
+                'label':            day_names[i],
+                'date':             day,
+                'sale_qty':         day_sales['qty'] or 0,
+                'sale_amount':      sale_amt,
+                'wholesale_qty':    day_wholesale['qty'] or 0,
+                'wholesale_amount': wholesale_amt,
+                'purchase_qty':     day_purchases['qty'] or 0,
+                'purchase_amount':  purchase_amt,
+                'net':              (sale_amt + wholesale_amt) - purchase_amt,
+                'is_today':         day == today,
+            })
+
+    elif tab == 'monthly':
+        days_in_month = calendar.monthrange(today.year,today.month)[1]
+        monthly_data = []
+        for day_num in range(1,days_in_month+1):
+            day = date(today.year,today.month,day_num)
+
+            day_sales = Sale.objects.filter(sold_at__date=day).aggregate(amount=Sum('final_price'),
+                                                                                     qty=Sum('quantity_sold'))
+            day_wholesale = Wholesale.objects.filter(sold_at__date=day).aggregate(amount=Sum('final_price'),
+                                                                                     qty=Sum('quantity_sold'))
+            day_purchases = Purchase.objects.filter(purchased_at__date=day).aggregate(amount=Sum('total_cost'),
+                                                                                     qty=Sum('quantity'))
+
+            sale_amt = float(day_sales['amount'] or 0)
+            wholesale_amt = float(day_wholesale['amount'] or 0)
+            purchase_amt = float(day_purchases['amount'] or 0)
+
+            monthly_data.append({
+                'label':            day.strftime('%d %b'),
+                'date':             day,
+                'sale_qty':         day_sales['qty'] or 0,
+                'sale_amount':      sale_amt,
+                'wholesale_qty':    day_wholesale['qty'] or 0,
+                'wholesale_amount': wholesale_amt,
+                'purchase_qty':     day_purchases['qty'] or 0,
+                'purchase_amount':  purchase_amt,
+                'net':              (sale_amt + wholesale_amt) - purchase_amt,
+                'is_today':         day == today,
+            })
+
+    elif tab == 'yearly':
+        month_names = [
+            'January', 'February', 'March', 'April',
+            'May', 'June', 'July', 'August',
+            'September', 'October', 'November', 'December'
+        ]
+        yearly_data=[]
+
+        for month_num in range(1,13):
+            month_sales = Sale.objects.filter(sold_at__year=today.year,sold_at__month=month_num ).aggregate(amount=Sum('final_price'),
+                                                                                                 qty=Sum('quantity_sold'))
+            month_wholesale = Wholesale.objects.filter(sold_at__year=today.year,sold_at__month=month_num).aggregate(amount=Sum('final_price'),
+                                                                                                         qty=Sum('quantity_sold'))
+            month_purchases = Purchase.objects.filter(purchased_at__year=today.year,purchased_at__month=month_num).aggregate(amount=Sum('total_cost'),
+                                                                                                                    qty=Sum('quantity'))
+
+            sale_amt = float(month_sales['amount'] or 0)
+            wholesale_amt = float(month_wholesale['amount'] or 0)
+            purchase_amt = float(month_purchases['amount'] or 0)
+
+            yearly_data.append({
+                'label':            month_names[month_num - 1],
+                'sale_qty':         month_sales['qty'] or 0,
+                'sale_amount':      sale_amt,
+                'wholesale_qty':    month_wholesale['qty'] or 0,
+                'wholesale_amount': wholesale_amt,
+                'purchase_qty':     month_purchases['qty'] or 0,
+                'purchase_amount':  purchase_amt,
+                'net':              (sale_amt + wholesale_amt) - purchase_amt,
+                'is_curernt':        month_num == today.month,
+            })
+
+    context = {
+        'tab':                    tab,
+        'today':                  today,
+        'sales_data':             sales_data,
+        'wholesale_data':         wholesale_data,
+        'purchase_data':          purchase_data,
+        'weekly_data':            weekly_data,
+        'monthly_data':           monthly_data,
+        'yearly_data':            yearly_data,
+        'sale_total_today':       sale_total_today,
+        'wholesale_total_today':  wholesale_total_today,
+        'purchase_total_today':   purchase_total_today,
+    }
+    return render(request,'pharmacy/sales-report.html',context)

@@ -28,7 +28,7 @@
       <tbody>
         {% for row in data %}
         <tr class="{% if row.is_today or row.is_current %}is-current{% endif %}">
-          <td style="font-weight:600;">{{ row.label|default:row.day_name }}</td>
+          <td style="font-weight:600;">{{ row.label}}</td>
           <td class="num">{{ row.sale_qty }}</td>
           <td class="num" style="color:var(--accent);">
             ৳{{ row.sale_amount|floatformat:2 }}
