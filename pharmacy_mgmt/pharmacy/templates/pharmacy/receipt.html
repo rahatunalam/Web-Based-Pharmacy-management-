@@ -1,0 +1,263 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Receipt {{ receipt.invoice_no }}</title>
+  <style>
+    /* ── Screen wrapper ── */
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #e8e8e8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* Screen control bar — hidden when printing */
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    .btn-print-now {
+      background: #0E8074;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-print-now:hover { background: #0A6359; }
+    .btn-back {
+      background: #fff;
+      color: #5C6F6C;
+      border: 1px solid #DEE7E4;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-back:hover { background: #f5f5f5; }
+
+    /* ── Receipt paper ── */
+    .receipt {
+      width: 302px;       /* 80mm at 96dpi */
+      background: #fff;
+      padding: 16px 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+      border-radius: 4px;
+    }
+
+    /* Typography */
+    .r-center  { text-align: center; }
+    .r-right   { text-align: right; }
+    .r-bold    { font-weight: bold; }
+    .r-large   { font-size: 15px; }
+    .r-small   { font-size: 11px; }
+    .r-tiny    { font-size: 10px; color: #555; }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px dashed #333;
+      margin: 8px 0;
+    }
+    .divider-solid {
+      border: none;
+      border-top: 1px solid #333;
+      margin: 8px 0;
+    }
+
+    /* Item row */
+    .item-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin: 3px 0;
+    }
+    .item-row__name {
+      flex: 1;
+      padding-right: 6px;
+    }
+    .item-row__qty  { width: 36px; text-align: right; }
+    .item-row__price{ width: 54px; text-align: right; }
+    .item-row__total{ width: 60px; text-align: right; font-weight: bold; }
+
+    /* Summary rows */
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin: 2px 0;
+    }
+    .summary-line.total {
+      font-size: 14px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+
+    /* ── Print styles ── */
+    @media print {
+      @page {
+        size: 80mm auto;
+        margin: 0;
+      }
+      body {
+        background: none;
+        padding: 0;
+        margin: 0;
+        display: block;
+      }
+      .controls { display: none !important; }
+      .receipt {
+        width: 80mm;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 4mm 3mm;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Screen-only controls -->
+<div class="controls">
+  <button class="btn-print-now" onclick="window.print()">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+      stroke="currentColor" stroke-width="2.5"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+      <path d="M6 14h12v8H6z"/>
+    </svg>
+    Print Receipt
+  </button>
+  <button class="btn-back" onclick="window.history.back()">
+    ← Back
+  </button>
+</div>
+
+<!-- Receipt paper -->
+<div class="receipt">
+
+  <!-- Header -->
+  <div class="r-center">
+    <div class="r-bold r-large">PEOPLES PHARMA</div>
+    <div class="r-tiny">Your trusted pharmacy</div>
+  </div>
+
+  <hr class="divider-solid">
+
+  <!-- Sale info -->
+  <div class="r-tiny r-center">{{ receipt.sale_type|upper }}</div>
+  <div class="r-tiny" style="margin-top:4px;">
+    <div style="display:flex; justify-content:space-between;">
+      <span>Invoice</span>
+      <span class="r-bold">{{ receipt.invoice_no }}</span>
+    </div>
+    <div style="display:flex; justify-content:space-between;">
+      <span>Date &amp; Time</span>
+      <span>{{ receipt.sold_at }}</span>
+    </div>
+    <div style="display:flex; justify-content:space-between;">
+      <span>Served by</span>
+      <span>{{ receipt.salesman }}</span>
+    </div>
+    {% if receipt.buyer %}
+    <div style="display:flex; justify-content:space-between;">
+      <span>Buyer</span>
+      <span class="r-bold">{{ receipt.buyer }}</span>
+    </div>
+    {% endif %}
+    {% if receipt.buyer_phone %}
+    <div style="display:flex; justify-content:space-between;">
+      <span>Phone</span>
+      <span>{{ receipt.buyer_phone }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <hr class="divider">
+
+  <!-- Column headers -->
+  <div class="item-row r-tiny r-bold">
+    <span class="item-row__name">ITEM</span>
+    <span class="item-row__qty">QTY</span>
+    <span class="item-row__price">PRICE</span>
+    <span class="item-row__total">TOTAL</span>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Items -->
+  {% for item in receipt.items %}
+  <div class="item-row">
+    <span class="item-row__name">
+      {{ item.name }}
+      <br>
+      <span style="font-size:10px; color:#555;">{{ item.type }}</span>
+    </span>
+    <span class="item-row__qty">{{ item.qty }}</span>
+    <span class="item-row__price">{{ item.price|floatformat:2 }}</span>
+    <span class="item-row__total">{{ item.total|floatformat:2 }}</span>
+  </div>
+  {% endfor %}
+
+  <hr class="divider">
+
+  <!-- Summary -->
+  <div class="summary-line">
+    <span>Subtotal</span>
+    <span>৳{{ receipt.subtotal|floatformat:2 }}</span>
+  </div>
+  <div class="summary-line">
+    <span>Discount</span>
+    <span>- ৳{{ receipt.discount|floatformat:2 }}</span>
+  </div>
+
+  <hr class="divider-solid">
+
+  <div class="summary-line total">
+    <span>TOTAL PAYABLE</span>
+    <span>৳{{ receipt.final_price|floatformat:2 }}</span>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Items count -->
+  <div class="r-tiny" style="display:flex; justify-content:space-between;">
+    <span>Total items</span>
+    <span>{{ receipt.items|length }}</span>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Footer -->
+  <div class="r-center r-tiny" style="margin-top:6px; line-height:1.6;">
+    <div class="r-bold">Thank you for your purchase!</div>
+    <div>Please come again</div>
+    <div style="margin-top:6px;">
+      *** {{ receipt.invoice_no }} ***
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Auto-print as soon as page loads
+  window.addEventListener('load', () => {
+    setTimeout(() => window.print(), 400);
+  });
+</script>
+</body>
+</html>

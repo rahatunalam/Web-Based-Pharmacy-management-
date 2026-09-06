@@ -69,6 +69,16 @@ function attachDeleteHandler(button, index, itemTotal) {
     });
 }
 
+function submitSale(shouldPrint) {
+    const realRows = tableBody.querySelectorAll('tr[data-index]').length;
+    if (realRows === 0) {
+        alert('Please add at least one medicine before confirming.');
+        return;
+    }
+    setHidden('print', shouldPrint ? '1' : '0');
+    document.getElementById('dbForm').submit();
+}
+
 discountInput.addEventListener('input', updateSummary);
 
 // Sync buyer name into hidden input before submitting

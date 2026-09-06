@@ -259,27 +259,38 @@
     </div>
 
     <!-- dbForm -->
-    <form id="dbForm" method="post"
-      action="{% url 'pharmacy:pro_customer_sale' %}">
+    <form id="dbForm" method="post" action="{% url 'pharmacy:sale_medicines' %}">
       {% csrf_token %}
       <div id="hiddenInputs"></div>
+      <div class="checkout-actions-row" style="margin-top:18px; display:flex; gap:10px;">
 
-      <div class="checkout-actions-row">
-        <button type="submit" class="btn-add">
-          Confirm Pro Customer Sale
+        <!-- Original button — no print -->
+        <button type="button" class="btn-add" onclick="submitSale(false)">
+          Sell to Pro Customer
         </button>
+
+        <!-- New button — saves and opens receipt -->
+        <button type="button" class="btn-add" onclick="submitSale(true)"
+          style="background:#026e69; box-shadow:0 4px 14px -4px rgba(47,111,237,0.4);">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none"
+            stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9V2h12v7"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <path d="M6 14h12v8H6z"/>
+          </svg>
+          Sell &amp; Print
+        </button>
+
       </div>
 
       {% if errors %}
         <div style="margin-top:12px;">
           {% for error in errors %}
-            <p style="color:#E2574C; font-size:13px; margin-top:4px;">
-              {{ error }}
-            </p>
+            <p style="color:#E2574C; font-size:13px; margin-top:4px;">{{ error }}</p>
           {% endfor %}
         </div>
       {% endif %}
-
     </form>
 
   </main>

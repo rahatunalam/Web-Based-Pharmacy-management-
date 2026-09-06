@@ -29,5 +29,6 @@ urlpatterns = [
     path('get-pro-customer-price/', views.get_pro_customer_price, name='get_pro_customer_price'),
     path('get-pro-customers/', views.get_pro_customers, name='get_pro_customers'),
     path('pro-customer-report/', views.pro_customer_report, name='pro_customer_report'),
-    path('medicine-search/',views.medicine_search,name='medicine_search')
+    path('medicine-search/',views.medicine_search,name='medicine_search'),
+    path('receipt/',views.receipt,name='receipt'),
 ]

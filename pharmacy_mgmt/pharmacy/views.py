@@ -291,11 +291,13 @@ def delete_salesman(request, pk):
 @login_required
 def sale_medicines(request):
     if request.method == 'POST':
+        should_print = request.POST.get('print','0') == '1'
         total_count = int(request.POST.get('total_count',0))
         discount = float(request.POST.get('discount', 0))
         subtotal = float(request.POST.get('subtotal',0))
         final_price = float(request.POST.get('final_price',0))
         errors = []
+        saved_items = [] # ← collect for receipt
 
         for i in range(total_count):
             name =  request.POST.get(f'sale_{i}_name')
@@ -330,9 +332,34 @@ def sale_medicines(request):
             medicine.quantity -= quantity
             medicine.save()
 
+            # ← collect item for receipt
+            saved_items.append({
+                'name': name,
+                'type': medicine.product_type,
+                'qty': quantity,
+                'price': price,
+                'total': item_total,
+            })
+
 
         if errors:
             return render(request,'pharmacy/sale-medicine.html',{'errors':errors})
+
+        # ← store receipt in session if print was requested
+        if should_print and saved_items:
+            now = timezone.localtime()
+            request.session['last_receipt'] = {
+                'sale_type':   'Retail Sale',
+                'invoice_no':  f"INV-{now.strftime('%Y%m%d-%H%M%S')}",
+                'sold_at':     now.strftime('%d %b %Y  %I:%M %p'),
+                'salesman':    request.user.get_full_name() or request.user.username,
+                'buyer':       None,
+                'items':       saved_items,
+                'subtotal':    subtotal,
+                'discount':    discount,
+                'final_price': final_price,
+            }
+            return redirect('pharmacy:receipt')
 
         return redirect('pharmacy:sale_medicines')
         
@@ -374,12 +401,14 @@ def get_medicine_price(request):
 @login_required
 def wholesale(request):
     if request.method == 'POST':
+        should_print = request.POST.get('print','0') == '1'
         buyer_name = request.POST.get('buyer_name','').strip()
         total_count = int(request.POST.get('total_count',0))
         discount = float(request.POST.get('discount',0))
         subtotal = float(request.POST.get('subtotal',0))
         final_price = float(request.POST.get('final_price',0))
         errors = []
+        saved_items = [] # ← collect for receipt
 
         # Buyer name is required
         if not buyer_name:
@@ -426,9 +455,34 @@ def wholesale(request):
             medicine.quantity -= quantity
             medicine.save()
 
+            # ← collect item for receipt
+            saved_items.append({
+                'name': name,
+                'type': medicine.product_type,
+                'qty': quantity,
+                'price': price,
+                'total': item_total,
+            })
+
         if errors:
             return render(request,'pharmacy/wholesale.html', {'errors': errors})
 
+        # ← store receipt in session if print was requested
+        if should_print and saved_items:
+            now = timezone.localtime()
+            request.session['last_receipt'] = {
+                'sale_type':   'Wholesale',
+                'invoice_no':  f"WHL-{now.strftime('%Y%m%d-%H%M%S')}",
+                'sold_at':     now.strftime('%d %b %Y  %I:%M %p'),
+                'salesman':    request.user.get_full_name() or request.user.username,
+                'buyer':       buyer_name,
+                'items':       saved_items,
+                'subtotal':    subtotal,
+                'discount':    discount,
+                'final_price': final_price,
+            }
+            return redirect('pharmacy:receipt')
+        
         return redirect('pharmacy:wholesale')
 
     return render(request,'pharmacy/wholesale.html')
@@ -473,6 +527,13 @@ def update_medicine(request):
             return redirect('pharmacy:update_medicine')
                      
     return render(request,'pharmacy/update-medicine.html')
+
+@login_required
+def receipt(request):
+    data = request.session.pop('last_receipt',None)
+    if not data:
+        return redirect('pharmacy:sale_medicines')
+    return render(request, 'pharmacy/receipt.html', {'receipt': data})
 
 @login_required
 def medicine_list(request):
@@ -716,12 +777,14 @@ def get_pro_customer_price(request):
 @login_required
 def pro_customer_sale(request):
     if request.method == 'POST':
+        should_print = request.POST.get('print', '0') == '1'
         customer_id = request.POST.get('customer_id')
         total_count = int(request.POST.get('total_count',0))
         discount = float(request.POST.get('discount',0))
         subtotal = float(request.POST.get('subtotal',0))
         final_price = float(request.POST.get('final_price',0))
         errors = []
+        saved_items  = []
 
         #Validate customer_id
         if not customer_id:
@@ -780,6 +843,14 @@ def pro_customer_sale(request):
             )
             medicine.quantity -= quantity
             medicine.save()
+
+            saved_items.append({
+                'name':  name,
+                'type':  medicine.product_type,
+                'qty':   quantity,
+                'price': price,
+                'total': item_total,
+            })
             
             if errors:
                 procustomers = ProCustomer.objects.all().order_by('name')
@@ -787,6 +858,23 @@ def pro_customer_sale(request):
                     'errors': errors,
                     'procustomers': procustomers,
                 })
+
+            if should_print and saved_items:
+                now = timezone.localtime()
+                request.session['last_receipt'] = {
+                    'sale_type':      'Pro Customer Sale',
+                    'invoice_no':     f"PRO-{now.strftime('%Y%m%d-%H%M%S')}",
+                    'sold_at':        now.strftime('%d %b %Y  %I:%M %p'),
+                    'salesman':       request.user.get_full_name() or request.user.username,
+                    'buyer':          customer.name,
+                    'buyer_phone':    customer.phone_number,
+                    'items':          saved_items,
+                    'subtotal':       subtotal,
+                    'discount':       discount,
+                    'final_price':    final_price,
+                }
+                return redirect('pharmacy:receipt')
+
             return redirect('pharmacy:pro_customer_sale')
         
     procustomers = ProCustomer.objects.all().order_by('name')                  
