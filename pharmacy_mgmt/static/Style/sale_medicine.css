@@ -268,6 +268,7 @@ input, select{font-family:inherit;}
 .field{
   display:flex;
   flex-direction:column;
+  justify-content: flex-end;
   gap:6px;
 }
 .field label{
@@ -293,6 +294,38 @@ input, select{font-family:inherit;}
   background:#fff;
 }
 .field input::placeholder{color:var(--ink-faint);}
+
+.discountfield{
+  width: 30%;
+  display:flex;
+  flex-direction:column;
+  justify-content: flex-end;
+  margin-left: 55vh;
+  gap:6px;
+}
+.discountfield label{
+  font-size:11.5px;
+  font-weight:600;
+  color:var(--ink-faint);
+  text-transform:uppercase;
+  letter-spacing:0.03em;
+}
+.discountfield input, .discountfield select{
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:11px 12px;
+  font-size:13.5px;
+  color:var(--ink);
+  background:#FBFCFC;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.discountfield input:focus, .discountfield select:focus{
+  outline:none;
+  border-color:var(--accent-light);
+  box-shadow:0 0 0 3px rgba(20,184,166,0.15);
+  background:#fff;
+}
+.discountfield input::placeholder{color:var(--ink-faint);}
 
 .btn-add{
   display:flex;
@@ -418,6 +451,7 @@ tbody tr:hover{background:#FAFCFC;}
 .field {
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   gap: 0.375rem;
   flex-grow: 1;          /* Lets the input field expand to fill available space */
 }
@@ -431,7 +465,7 @@ tbody tr:hover{background:#FAFCFC;}
 
 /* Input field styling */
 .field input[type="number"] {
-  width: 100%;
+  width: 50%;
   padding: 0.625rem 0.875rem;
   font-size: 1rem;
   border: 1px solid #d1d5db;
@@ -503,3 +537,85 @@ tbody tr:hover{background:#FAFCFC;}
     width: 100%;
   }
 }
+/* Container to push the input flush right with the table and summary */
+.discount-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+  width: 100%;
+}
+
+/* Fix width and override the 50% constraint */
+.discount-wrapper .field {
+  width: 200px;
+  flex-grow: 0;
+}
+
+.discount-wrapper .field input[type="number"] {
+  width: 100%;
+}
+/* ── Medicine autocomplete ── */
+.medicine-search-wrap {
+  position: relative;
+}
+.medicine-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  z-index: 200;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.medicine-dropdown.is-open { display: block; }
+
+.medicine-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background .1s;
+  border-bottom: 1px solid var(--border);
+}
+.medicine-option:last-child { border-bottom: none; }
+.medicine-option:hover {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+.medicine-option__left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.medicine-option__name {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.medicine-option__type {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+.medicine-option__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.medicine-option__price {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.medicine-option__stock {
+  font-size: 11px;
+  font-weight: 600;
+}
+.medicine-option__stock.low { color: var(--data-coral); }
+.medicine-option__stock.ok  { color: var(--ink-faint);  }

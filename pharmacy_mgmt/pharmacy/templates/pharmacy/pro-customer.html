@@ -1,0 +1,187 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pro Customers · Peoples Pharma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'Style/add_medicine.css' %}">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand__text">
+        <h1>Peoples Pharma</h1>
+        <span>Welcome, {{ request.user.username }}</span>
+      </div>
+    </div>
+    <ul class="nav">
+      <li><a href="{% url 'pharmacy:dashboard' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a></li>
+      <li><a href="{% url 'pharmacy:add_medicine' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 7v8M7 11h8"/></svg>
+        Add Medicine
+      </a></li>
+      <li><a href="{% url 'pharmacy:add_salesman' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Add Salesman
+      </a></li>
+      <li><a href="{% url 'pharmacy:pro_customer' %}" class="nav__link is-active">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+        Pro Customers
+        <span class="nav__pulse"></span>
+      </a></li>
+      <li><a href="{% url 'pharmacy:pro_customer_report' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>
+        Customer Report
+      </a></li>
+      <li><a href="{% url 'pharmacy:edit_medicine' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+        Edit Medicines
+      </a></li>
+      <li><a href="{% url 'pharmacy:sales_report' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>
+        Sales Report
+      </a></li>
+    </ul>
+    <div class="sidebar__spacer"></div>
+    <a href="{% url 'pharmacy:logout' %}" class="nav__logout">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Logout
+    </a>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h2>Pro Customers</h2>
+        <p>Register and manage pro customer accounts</p>
+      </div>
+      <!-- Live customer count badge -->
+      <div style="background:var(--accent-soft); color:var(--accent-dark);
+                  padding:8px 16px; border-radius:999px; font-size:13px;
+                  font-weight:700;">
+        {{ procustomers|length }}
+        customer{{ procustomers|length|pluralize }}
+      </div>
+    </div>
+
+    <!-- Entry form -->
+    <section class="form-card">
+      <div class="form-card__title">New Pro Customer Entry</div>
+      <form method="post" action="{% url 'pharmacy:pro_customer' %}">
+        {% csrf_token %}
+        <div class="form-row"
+          style="grid-template-columns: 1.5fr 1.2fr auto;">
+          <div class="field">
+            <label for="customer_name">Customer Name</label>
+            <input
+              type="text"
+              id="customer_name"
+              name="customer_name"
+              placeholder="e.g. Karim Hossain"
+              required
+            >
+          </div>
+          <div class="field">
+            <label for="phone_number">Phone Number</label>
+            <input
+              type="text"
+              id="phone_number"
+              name="phone_number"
+              placeholder="e.g. 01712345678"
+              required
+            >
+          </div>
+          <button type="submit" class="btn-add">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none"
+              stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Save
+          </button>
+        </div>
+
+        {% if errors %}
+          <p style="color:var(--data-coral); font-size:13px; margin-top:10px;">
+            {{ errors }}
+          </p>
+        {% endif %}
+        {% if success %}
+          <p style="color:var(--accent); font-size:13px; margin-top:10px;">
+            {{ success }}
+          </p>
+        {% endif %}
+
+      </form>
+    </section>
+
+    <!-- Customer table -->
+    <section class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Customer Name</th>
+            <th>Phone Number</th>
+            <th>Registered On</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for customer in procustomers %}
+          <tr>
+            <td style="color:var(--ink-faint); font-size:12px;">
+              {{ forloop.counter }}
+            </td>
+            <td style="font-weight:600;">{{ customer.name }}</td>
+            <td>{{ customer.phone_number }}</td>
+            <td style="color:var(--ink-soft); font-size:13px;">
+              {{ customer.created_at|date:"d M Y" }}
+            </td>
+            <td>
+              <form method="post"
+                action="{% url 'pharmacy:delete_pro_customer' customer.pk %}"
+                onsubmit="return confirm('Delete {{ customer.name }}?')">
+                {% csrf_token %}
+                <button type="submit" class="row-delete">
+                  <svg viewBox="0 0 24 24" width="14" height="14"
+                    fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0
+                      0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0
+                      0 1-2-2L4 6"/>
+                  </svg>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5"
+              style="text-align:center; color:var(--ink-faint);
+                     padding:40px; font-style:italic;">
+              No pro customers registered yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,423 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delete Medicine · Peoples Pharma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'Style/add_medicine.css' %}">
+<style>
+    /* Inline edit row */
+    .edit-row td {
+      background: var(--accent-soft);
+      padding: 10px 16px;
+      border-bottom: 2px solid var(--accent-light);
+    }
+    .edit-row input {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      font-size: 13px;
+      width: 100%;
+      background: #fff;
+      color: var(--ink);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .edit-row input:focus {
+      outline: none;
+      border-color: var(--accent-light);
+      box-shadow: 0 0 0 3px rgba(20,184,166,0.15);
+    }
+    .edit-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn-save {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+    }
+    .btn-save:hover { background: var(--accent-dark); }
+    .btn-cancel {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+    }
+    .btn-cancel:hover { background: var(--border); }
+    .btn-edit {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .btn-edit:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent-light);
+    }
+    .error-list {
+      margin-top: 6px;
+    }
+    .error-list p {
+      font-size: 12px;
+      color: var(--data-coral);
+      margin-top: 2px;
+    }
+    .changed-badge {
+      display: none;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+     <!--<div class="brand__mark">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#14B8A6"><path d="M12 2v20M2 12h20"/></svg>
+      </div>-->
+      <div class="brand__text">
+        <h1>Peoples Pharma</h1>
+        <span>Welcome, {{ request.user.username }}</span>
+      </div>
+    </div>
+
+    <ul class="nav">
+      <li><a href="{% url 'pharmacy:dashboard' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a></li>
+      <li><a href="{% url 'pharmacy:add_medicine' %}" class="nav__link ">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 7v8M7 11h8"/></svg>
+        Add Medicine
+      </a></li>
+      <li><a href="{% url 'pharmacy:add_salesman' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add Salesman
+      </a></li>
+      <li><a href="{% url 'pharmacy:pro_customer' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+        Pro Customers
+      </a></li>
+      <li><a href="{% url 'pharmacy:pro_customer_report' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>
+        Customer Report
+      </a></li>
+      <li><a href="{% url 'pharmacy:edit_medicine' %}" class="nav__link is-active">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+        Edit Medicines
+        <span class="nav__pulse"></span>
+      </a></li>
+      <li><a href="{% url 'pharmacy:sales_report' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>
+        Sales Report
+      </a></li>
+    </ul>
+
+    <div class="sidebar__spacer"></div>
+
+    <a href="{% url 'pharmacy:logout' %}" class="nav__logout">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Logout
+    </a>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h2>Edit Medicine</h2>
+        <p>Search, update or delete medicine details</p>
+      </div>
+      <span style="font-size:13px; color:var(--ink-faint); font-weight:600;">
+        {{ medicines|length }}
+        medicine{{ medicines|length|pluralize }}
+      </span>
+    </div>
+
+    <!-- Search -->
+    <form method="get" action="{% url 'pharmacy:edit_medicine' %}">
+      <section class="form-card" style="margin-bottom:18px;">
+        <div class="form-card__title">Search Medicine</div>
+        <div class="form-row" style="grid-template-columns: 1fr auto;">
+          <div class="field">
+            <label for="search">Product Name</label>
+            <input
+              type="text"
+              id="search"
+              name="search"
+              placeholder="Type a medicine name..."
+              value="{{ search }}"
+              autocomplete="off"
+            >
+          </div>
+          <button type="submit" class="btn-add">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none"
+              stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+            Search
+          </button>
+        </div>
+        {% if search %}
+          <div style="margin-top:10px;">
+            <a href="{% url 'pharmacy:edit_medicine' %}"
+              style="font-size:13px; color:var(--accent); font-weight:600;">
+              ✕ Clear search
+            </a>
+          </div>
+        {% endif %}
+      </section>
+    </form>
+
+    <!-- Medicine table -->
+    <section class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Product Name</th>
+            <th>Company</th>
+            <th>Type</th>
+            <th class="num">Quantity</th>
+            <th class="num">Price / Unit</th>
+            <th class="num">Total Value</th>
+            <th style="text-align:center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for medicine in medicines %}
+
+          <!-- Normal display row -->
+          <tr class="display-row" id="display-{{ medicine.pk }}">
+            <td style="color:var(--ink-faint); font-size:12px;">
+              {{ forloop.counter }}
+            </td>
+            <td style="font-weight:600;">{{ medicine.name }}</td>
+            <td>{{ medicine.company|default:"—" }}</td>
+            <td><span class="pill">{{ medicine.product_type }}</span></td>
+            <td class="num">
+              {{ medicine.quantity }}
+              {% if medicine.quantity < 10 %}
+                <span style="color:var(--data-coral);
+                             font-size:11px; margin-left:4px;">
+                  ⚠ Low
+                </span>
+              {% endif %}
+            </td>
+            <td class="num">৳{{ medicine.price_per_unit }}</td>
+            <td class="num">৳{{ medicine.total_price }}</td>
+            <td>
+              <div class="action-group">
+
+                <!-- Edit button -->
+                <button
+                  class="btn-edit"
+                  type="button"
+                  onclick="openEdit({{ medicine.pk }})">
+                  ✎ Edit
+                </button>
+
+                <!-- Delete button — its own POST form -->
+                <form
+                  method="post"
+                  action="{% url 'pharmacy:delete_med' medicine.pk %}"
+                  style="margin:0;"
+                  onsubmit="return confirm(
+                    'Delete {{ medicine.name }}?\nThis cannot be undone.'
+                  )">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-del">
+                    ✕ Delete
+                  </button>
+                </form>
+
+              </div>
+            </td>
+          </tr>
+
+          <!-- Inline edit row — hidden by default -->
+          <tr class="edit-row"
+            id="edit-{{ medicine.pk }}"
+            style="display:none;">
+            <td colspan="8">
+              <form
+                method="post"
+                action="{% url 'pharmacy:edit_medicine_save' medicine.pk %}">
+                {% csrf_token %}
+
+                <div style="
+                  display: grid;
+                  grid-template-columns: 1.4fr 1.2fr 0.7fr 0.7fr auto;
+                  gap: 10px;
+                  align-items: end;">
+
+                  <div>
+                    <label style="font-size:11px; font-weight:700;
+                      color:var(--ink-faint); text-transform:uppercase;
+                      letter-spacing:0.04em; display:block; margin-bottom:4px;">
+                      Product Name
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value="{% if editing_pk == medicine.pk and edit_values %}{{ edit_values.name }}{% else %}{{ medicine.name }}{% endif %}"
+                      placeholder="Product name"
+                      required
+                    >
+                  </div>
+
+                  <div>
+                    <label style="font-size:11px; font-weight:700;
+                      color:var(--ink-faint); text-transform:uppercase;
+                      letter-spacing:0.04em; display:block; margin-bottom:4px;">
+                      Company
+                    </label>
+                    <input
+                      type="text"
+                      name="company"
+                      value="{% if editing_pk == medicine.pk and edit_values %}{{ edit_values.company }}{% else %}{{ medicine.company }}{% endif %}"
+                      placeholder="Company name"
+                      required
+                    >
+                  </div>
+
+                  <div>
+                    <label style="font-size:11px; font-weight:700;
+                      color:var(--ink-faint); text-transform:uppercase;
+                      letter-spacing:0.04em; display:block; margin-bottom:4px;">
+                      Quantity
+                    </label>
+                    <input
+                      type="number"
+                      name="quantity"
+                      min="0"
+                      value="{% if editing_pk == medicine.pk and edit_values %}{{ edit_values.quantity }}{% else %}{{ medicine.quantity }}{% endif %}"
+                      required
+                    >
+                  </div>
+
+                  <div>
+                    <label style="font-size:11px; font-weight:700;
+                      color:var(--ink-faint); text-transform:uppercase;
+                      letter-spacing:0.04em; display:block; margin-bottom:4px;">
+                      Price / Unit
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      step="0.01"
+                      min="0"
+                      value="{% if editing_pk == medicine.pk and edit_values %}{{ edit_values.price }}{% else %}{{ medicine.price_per_unit }}{% endif %}"
+                      required
+                    >
+                  </div>
+
+                  <div class="edit-actions">
+                    <button type="submit" class="btn-save">
+                      ✓ Save
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-cancel"
+                      onclick="closeEdit({{ medicine.pk }})">
+                      Cancel
+                    </button>
+                  </div>
+
+                </div>
+
+                <!-- Validation errors for this specific row -->
+                {% if editing_pk == medicine.pk and edit_errors %}
+                  <div class="error-list" style="margin-top:8px;">
+                    {% for err in edit_errors %}
+                      <p>{{ err }}</p>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+
+              </form>
+            </td>
+          </tr>
+
+          {% empty %}
+          <tr>
+            <td colspan="8"
+              style="text-align:center; color:var(--ink-faint);
+                     padding:40px; font-style:italic;">
+              {% if search %}
+                No medicines found matching "{{ search }}".
+              {% else %}
+                No medicines in the database yet.
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+</div>
+
+<script>
+function openEdit(pk) {
+    // Close any currently open edit row first
+    document.querySelectorAll('.edit-row').forEach(row => {
+        row.style.display = 'none';
+    });
+
+    const editRow = document.getElementById('edit-' + pk);
+    if (editRow) {
+        editRow.style.display = '';
+        const firstInput = editRow.querySelector('input');
+        if (firstInput) firstInput.focus();
+    }
+}
+
+function closeEdit(pk) {
+    const editRow = document.getElementById('edit-' + pk);
+    if (editRow) editRow.style.display = 'none';
+}
+
+// If Django returned validation errors, keep that row open
+{% if editing_pk %}
+    document.addEventListener('DOMContentLoaded', () => {openEdit({{ editing_pk }});});
+{% endif %}
+</script>
+
+<!--<script src="{% static 'js/delete-medicine.js' %}"></script>-->
+</body>
+</html>

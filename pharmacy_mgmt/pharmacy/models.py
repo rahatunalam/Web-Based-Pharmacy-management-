@@ -76,3 +76,41 @@ class Purchase(models.Model):
 
     def __str__(self):
         return f"{self.medicine.name} x {self.quantity} — {self.purchased_at.date()}"
+
+class ProCustomer(models.Model):
+    name = models.CharField(max_length=150)
+    phone_number = models.CharField(max_length=20,unique=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.name} — {self.phone_number}"
+
+class ProCustomerSale(models.Model):
+    customer = models.ForeignKey(
+        ProCustomer,
+        on_delete=models.CASCADE,
+        related_name='orders'
+    )
+    medicine = models.ForeignKey(
+        Medicine,
+        on_delete= models.CASCADE,
+        related_name='pro_sales'
+    )
+    salesman = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='pro_sales'
+    )
+    quantity_sold = models.PositiveIntegerField()
+    price_per_unit = models.DecimalField(max_digits=10, decimal_places=2)
+    item_total = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    final_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    sold_at = models.DateTimeField(default=timezone.now)
+    def __str__(self):
+        return (
+            f"{self.customer.name} — "
+            f"{self.medicine.name} x {self.quantity_sold} — "
+            f"{self.sold_at.strftime('%d %b %Y %I:%M %p')}"
+        )

@@ -107,7 +107,7 @@
     <div class="brand">
       <div class="brand__text">
         <h1>Peoples Pharma</h1>
-        <span>Admin</span>
+        <span>Welcome, {{ request.user.username }}</span>
       </div>
     </div>
     <ul class="nav">
@@ -123,9 +123,17 @@
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
         Add Salesman
       </a></li>
-      <li><a href="{% url 'pharmacy:delete_medicine' %}" class="nav__link ">
+      <li><a href="{% url 'pharmacy:pro_customer' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+        Pro Customers
+      </a></li>
+      <li><a href="{% url 'pharmacy:pro_customer_report' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>
+        Customer Report
+      </a></li>
+      <li><a href="{% url 'pharmacy:edit_medicine' %}" class="nav__link">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
-        Delete Medicines
+        Edit Medicines
       </a></li>
       <li><a href="{% url 'pharmacy:sales_report' %}" class="nav__link is-active">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>
@@ -229,11 +237,11 @@
                 <td class="num" style="color:var(--accent);">
                    ৳{{ sale_total_today|floatformat:2 }}
                 </td>
-                <td></td>
+                <!--<td></td>
                 <td></td>
                 <td class="num" style="color:var(--data-coral);">
                   ৳{{ purchase_total_today|floatformat:2 }}
-                </td>
+                </td>--->
               </tr>
             </tfoot>
             {% endif %}
@@ -282,6 +290,16 @@
               </tr>
               {% endfor %}
             </tbody>
+            {% if wholesale_data %}
+            <tfoot>
+              <tr>
+                <td colspan="8" style="text-align:right;">Total Revenue</td>
+                <td class="num" style="color:var(--accent);">
+                   ৳{{ wholesale_total_today|floatformat:2 }}
+                </td>
+              </tr>
+            </tfoot>
+            {% endif %}
           </table>
         </div>
       </div>
@@ -325,6 +343,15 @@
               </tr>
               {% endfor %}
             </tbody>
+            {% if purchase_data %}
+            <tfoot>
+              <tr>
+                <td colspan="8" style="text-align:right;">Total Purchases</td>
+                <td class="num" style="color:var(--accent);">
+                   ৳{{ purchase_total_today|floatformat:2 }}
+                </td>
+            </tfoot>
+            {% endif %}
           </table>
         </div>
       </div>

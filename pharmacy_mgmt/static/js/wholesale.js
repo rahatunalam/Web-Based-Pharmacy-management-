@@ -4,6 +4,15 @@ const hiddenInputs  = document.getElementById('hiddenInputs');
 const discountInput = document.getElementById('discount');
 const emptyRow      = document.getElementById('emptyRow');
 
+initMedicineSearch((medicine) => {
+    // Optionally fill the custom price field with the default price
+    const customPriceInput = document.getElementById('customPrice');
+    if (customPriceInput) {
+        customPriceInput.placeholder = `Default: ৳${medicine.price.toFixed(2)}`;
+    }
+    document.getElementById('saleQuantity').focus();
+});
+
 let rowCount = 0;
 let runningSubtotal = 0;
 

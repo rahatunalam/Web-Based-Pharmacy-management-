@@ -31,6 +31,10 @@
         Wholesale
         <span class="nav__pulse"></span>
       </a></li>
+      <li><a href="{% url 'pharmacy:pro_customer_sale' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+        Pro Customer Sale
+      </a></li>
       <li><a href="{% url 'pharmacy:update_medicine' %}" class="nav__link">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><!-- Medical Cross --><path d="M12 8v8M8 12h8"/><!-- Refresh Loop --><path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/></svg>
         Update Medicine
@@ -61,46 +65,54 @@
       </div>
     </div>
 
-    <!-- Buyer name — collected once for the whole transaction -->
+    <!-- Buyer name -->
     <section class="form-card">
       <div class="form-card__title">Buyer Information</div>
       <div class="form-row" style="grid-template-columns: 1fr;">
         <div class="field">
           <label for="buyerName">Buyer / Company Name</label>
-          <input type="text" id="buyerName"
-            placeholder="e.g. City Pharmacy Ltd." required>
+          <input type="text" id="buyerName" placeholder="e.g. City Pharmacy Ltd." required>
         </div>
       </div>
     </section>
 
-    <!-- Medicine entry form -->
+    <!-- Medicine entry form (Equal 3-column width + Add Button) -->
     <section class="form-card">
       <div class="form-card__title">Add Medicines to Order</div>
       <form id="medicineForm">
-        <div class="form-row">
-          <div class="field">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 16px; align-items: flex-end; width: 100%;">
+          
+          <!-- Field 1: Equal Width -->
+          <div class="field" style="width: 100% !important;">
             <label for="productName">Product Name</label>
-            <input type="text" id="productName"
-              placeholder="e.g. Napa" autocomplete="off" required>
+            <div class="medicine-search-wrap" style="position: relative; width: 100%;">
+              <input type="text" id="productName"
+                placeholder="Type to search medicine..."
+                autocomplete="off" required style="width: 100% !important;">
+              <div class="medicine-dropdown" id="medicineDropdown"></div>
+            </div>
           </div>
-          <div class="field">
+
+          <!-- Field 2: Equal Width -->
+          <div class="field" style="width: 100% !important;">
             <label for="saleQuantity">Quantity</label>
-            <input type="number" id="saleQuantity"
-              placeholder="100" min="1" required>
+            <input type="number" id="saleQuantity" placeholder="100" min="1" required style="width: 100% !important;">
           </div>
-          <div class="field">
+
+          <!-- Field 3: Equal Width -->
+          <div class="field" style="width: 100% !important;">
             <label for="customPrice">Price / Unit (optional)</label>
-            <input type="number" id="customPrice"
-              placeholder="Leave blank for default" min="0" step="0.01">
+            <input type="number" id="customPrice" placeholder="Leave blank for default" min="0" step="0.01" style="width: 100% !important;">
           </div>
-          <button type="submit" class="btn-add">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
-              stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round">
+
+          <!-- Add Button -->
+          <button type="submit" class="btn-add" style="height: 42px; margin-bottom: 1px;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 5v14M5 12h14"/>
             </svg>
             Add
           </button>
+
         </div>
       </form>
     </section>
@@ -115,20 +127,26 @@
             <th class="num">Quantity</th>
             <th class="num">Price / Unit</th>
             <th class="num">Total Price</th>
-            <th></th>
+            <th style="width: 48px;"></th>
           </tr>
         </thead>
         <tbody id="medicineTableBody">
           <tr id="emptyRow">
-            <td colspan="6"
-              style="text-align:center; color:var(--ink-faint);
-                     padding:30px; font-style:italic;">
+            <td colspan="6" style="text-align:center; color:var(--ink-faint); padding:30px; font-style:italic;">
               No medicines added yet.
             </td>
           </tr>
         </tbody>
       </table>
     </section>
+
+    <!-- Discount Row -->
+    <div style="display: flex !important; justify-content: flex-end !important; width: 100% !important; margin: 18px 0 !important;">
+      <div class="field" style="flex: 0 0 220px !important; width: 220px !important;">
+        <label for="discount">Discount (%)</label>
+        <input type="number" id="discount" placeholder="0" min="0" max="100" value="0" style="width: 100% !important;">
+      </div>
+    </div>
 
     <!-- Summary -->
     <div class="summary-card">
@@ -138,7 +156,7 @@
       </div>
       <div class="summary-row">
         <span>Discount (৳)</span>
-        <span id="displayDiscount">৳0.00</span>
+        <span id="displayDiscount">৳0.00 (0%)</span>
       </div>
       <div class="summary-row summary-final">
         <span>Total Payable</span>
@@ -146,19 +164,12 @@
       </div>
     </div>
 
-    <!-- dbForm — wraps all hidden inputs, buyer name, discount, submit -->
-    <form id="dbForm" method="post"
-      action="{% url 'pharmacy:wholesale' %}">
+    <!-- dbForm -->
+    <form id="dbForm" method="post" action="{% url 'pharmacy:wholesale' %}">
       {% csrf_token %}
-
       <div id="hiddenInputs"></div>
 
-      <div class="checkout-actions-row">
-        <div class="field">
-          <label for="discount">Discount (৳)</label>
-          <input type="number" id="discount"
-            placeholder="0" min="0" value="0">
-        </div>
+      <div class="checkout-actions-row" style="margin-top: 18px;">
         <button type="submit" class="btn-add">
           Confirm Wholesale Order
         </button>
@@ -173,12 +184,12 @@
           {% endfor %}
         </div>
       {% endif %}
-
     </form>
 
   </main>
 </div>
 
+<script src="{% static 'js/medicine-autocomplete.js' %}"></script>
 <script src="{% static 'js/wholesale.js' %}"></script>
 </body>
 </html>

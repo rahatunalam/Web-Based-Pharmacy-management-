@@ -1,14 +1,14 @@
 from django.shortcuts import render,redirect,get_object_or_404
 from django.contrib.auth import authenticate,login,logout
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum,Count,F
+from django.db.models import Q, Max, Sum,Count,F
 from django.db.models.functions import TruncMonth,TruncYear
 from django.template import context
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib import messages
 from .forms import LoginForm
-from .models import Medicine,Sale,Wholesale,Purchase
+from .models import Medicine,Sale,Wholesale,Purchase,ProCustomer,ProCustomerSale
 from datetime import timedelta,date
 import calendar
 import json
@@ -168,20 +168,74 @@ def s_add_medicine(request):
                  
     return render(request,'pharmacy/s-add-medicine.html')
 
+
+
 @login_required
-def delete_medicine(request):
+def edit_medicine(request):
     
     search = request.GET.get('search', '')
+    medicines = None
 
     if search:
         medicines = Medicine.objects.filter(name__icontains=search)
     else:
-        medicines = Medicine.objects.all()
+        medicines = Medicine.objects.all().order_by('name')
 
-    return render(request, 'pharmacy/delete-medicine.html', {
+    return render(request, 'pharmacy/edit-medicine.html', {
         'medicines': medicines,
         'search': search,
     })
+
+@login_required
+def edit_medicine_save(request,pk):
+    medicine = get_object_or_404(Medicine, pk=pk)
+    if request.method == 'POST':
+        name = request.POST.get('name','').strip()
+        company = request.POST.get('company','').strip()
+        quantity = request.POST.get('quantity','').strip()
+        price = request.POST.get('price','').strip()
+
+        errors = []
+
+        if not name :
+            errors.append('Producct name is required.')
+        if not company:
+            errors.append('Company name is required')
+        if not quantity or not quantity.isdigit():
+            errors.append('Quantity must be a valid number.')
+        try:
+            float(price)
+        except(ValueError,TypeError):
+            errors.append('Price must be a vlaid number.')
+
+        if errors:
+            # Re-render the list with the inline form open
+            search    = request.GET.get('search', '').strip()
+            medicines = Medicine.objects.all().order_by('name')
+            return render(request, 'pharmacy/edit-medicine.html', {
+                'medicines':    medicines,
+                'search':       search,
+                'editing_pk':   pk,
+                'edit_errors':  errors,
+                'edit_values': {
+                    'name':     name,
+                    'company':  company,
+                    'quantity': quantity,
+                    'price':    price,
+                },
+            })
+        medicine.name = name
+        medicine.company = company
+        medicine.quantity = int(quantity)
+        medicine.price_per_unit = float(price)
+        medicine.save()
+
+        return redirect(
+            f"{request.build_absolute_uri('/')[:-1]}"
+            f"/edit-medicine/?search={name}"
+        )
+    
+    return redirect('pharmacy:edit_medicine')
 
 @login_required
 def delete_med(request,pk):
@@ -284,6 +338,23 @@ def sale_medicines(request):
         
     return render(request,'pharmacy/sale-medicine.html')
 
+@login_required
+def medicine_search(request):
+    query = request.GET.get('q','').strip()
+    results = []
+
+    if query:
+        medicines = Medicine.objects.filter(name__icontains = query).values('name','product_type','quantity','price_per_unit')[:8]
+
+        for m in medicines:
+            results.append({
+                'name': m['name'],
+                'product_type': m['product_type'],
+                'quantity': m['quantity'],
+                'price': float(m['price_per_unit']),
+            })
+    return JsonResponse({'results': results})
+
 from django.http import JsonResponse
 
 @login_required
@@ -320,7 +391,7 @@ def wholesale(request):
             price = request.POST.get(f'sale_{i}_price')
             item_total = request.POST.get(f'sale_{i}_total')
 
-            if not name or quantity or not price:
+            if not name or not quantity or not price:
                 continue
 
             quantity = int(quantity)
@@ -339,6 +410,7 @@ def wholesale(request):
                     f"Available: {medicine.quantity}, Requested: {quantity}"
                 )
                 continue
+
             Wholesale.objects.create(
                 buyer_name = buyer_name,
                 medicine=medicine,
@@ -355,7 +427,7 @@ def wholesale(request):
             medicine.save()
 
         if errors:
-            return render(request,'pharamacy/wholesale.html', {'errors': errors})
+            return render(request,'pharmacy/wholesale.html', {'errors': errors})
 
         return redirect('pharmacy:wholesale')
 
@@ -578,3 +650,234 @@ def sales_report(request):
         'purchase_total_today':   purchase_total_today,
     }
     return render(request,'pharmacy/sales-report.html',context)
+
+@login_required
+def pro_customer(request):
+    error = None
+    success = None
+    if request.method == 'POST':
+        name = request.POST.get('customer_name','').strip()
+        phone = request.POST.get('phone_number','').strip()
+
+        if not name or not phone:
+            error = 'Both name and phone number are required.'
+
+        elif len(phone) !=11:
+            error = f"Phone number must be exactly 11 digits."
+
+        elif ProCustomer.objects.filter(phone_number = phone).exists():
+            error = f"Phone number '{phone}' is already registered."
+
+        else:
+            ProCustomer.objects.create(
+                name=name,
+                phone_number=phone,
+            )
+            success = f"Pro customer '{name}' added successfully."
+    procustomers = ProCustomer.objects.all().order_by('-created_at')
+
+    return render(request, 'pharmacy/pro-customer.html', {
+            'procustomers': procustomers,
+            'errors':       error,
+            'success' :     success, 
+        })
+
+@login_required
+def delete_pro_customer(request,pk):
+    if request.method == 'POST':
+        customer = get_object_or_404(ProCustomer, pk=pk)
+        customer.delete()
+    return redirect('pharmacy:pro_customer')
+
+@login_required
+def get_pro_customers(request):
+    query = request.GET.get('q','').strip()
+    customers = []
+    if query:
+        matches = ProCustomer.objects.filter(name__icontains=query).values('id','name','phone_number')[:8]
+        customers = list(matches)
+    return JsonResponse({'customers':customers})
+
+@login_required
+def get_pro_customer_price(request):
+    name = request.GET.get('name','').strip()
+    try:
+        medicine = Medicine.objects.get(name__iexact = name)
+        return JsonResponse({
+            'found':        True,
+            'price':        float(medicine.price_per_unit),
+            'stock':        medicine.quantity,
+            'product_type': medicine.product_type,
+        })
+
+    except Medicine.DoesNotExist:
+        return JsonResponse({'found': False})
+
+@login_required
+def pro_customer_sale(request):
+    if request.method == 'POST':
+        customer_id = request.POST.get('customer_id')
+        total_count = int(request.POST.get('total_count',0))
+        discount = float(request.POST.get('discount',0))
+        subtotal = float(request.POST.get('subtotal',0))
+        final_price = float(request.POST.get('final_price',0))
+        errors = []
+
+        #Validate customer_id
+        if not customer_id:
+            errors.append('Please select a pro customer')
+            procustomers = ProCustomer.objects.all().order_by('name')
+            return render(request,'pharmacy/pro-customer-sale.html',{
+                'errors': errors,
+                'procustomers': procustomers,
+            })
+
+        try:
+            customer = ProCustomer.objects.get(pk=customer_id)
+        except ProCustomer.DoesNotExist:
+            errors.append('Selected customer not found.')
+            procustomers = ProCustomer.objects.all().order_by('name')
+            return render(request,'pharmacy/pro-customer-sale.html',{
+                'errors': errors,
+                'procustomers': procustomers,
+            })
+        for i in range(total_count):
+            name = request.POST.get(f'sale_{i}_name')
+            quantity = request.POST.get(f'sale_{i}_quantity')
+            price = request.POST.get(f'sale_{i}_price')
+            item_total = request.POST.get(f'sale_{i}_total')
+        
+            if not name or quantity or not price:
+                continue
+        
+            quantity = int(quantity)
+            price = float(price)
+            item_total = float(item_total)
+        
+            try:
+                medicine = Medicine.objects.get(name__iexact=name)
+            except Medicine.DoesNotExist:
+                errors.append(f"Medicine '{name}' not found.")
+                continue
+        
+            if medicine.quantity<quantity:
+                errors.append(
+                    f"Not enough stock for '{name}.'"
+                    f"Available: {medicine.quantity}, Requested: {quantity}"
+                )
+                continue
+            # Save to ProCustomerSale — separate from Sale and Wholesale
+            ProCustomerSale.objects.create(
+                customer= customer,
+                medicine=medicine,
+                salesman=request.user,
+                quantity_sold=quantity,
+                price_per_unit=price,
+                item_total=item_total,
+                subtotal=subtotal,
+                discount=discount,
+                final_price=final_price,
+            )
+            medicine.quantity -= quantity
+            medicine.save()
+            
+            if errors:
+                procustomers = ProCustomer.objects.all().order_by('name')
+                return render(request,'pharmacy/pro-customer-sale.html',{
+                    'errors': errors,
+                    'procustomers': procustomers,
+                })
+            return redirect('pharmacy:pro_customer_sale')
+        
+    procustomers = ProCustomer.objects.all().order_by('name')                  
+    return render(request,'pharmacy/pro-customer-sale.html',{
+        'procustomers': procustomers,
+    })
+
+@login_required
+def pro_customer_report(request):
+    current_year = timezone.localdate().year
+
+    # Get every pro customer and annotate with their yearly totals
+    customers = ProCustomer.objects.annotate(
+
+        # Total units sold to this customer this year
+        total_qty = Sum(
+            'orders__quantity_sold',
+            filter=Q(orders__sold_at__year=current_year)
+        ),
+
+        # Total revenue before discount
+        total_subtotal = Sum(
+            'orders__subtotal',
+            filter=Q(orders__sold_at__year=current_year)
+        ),
+
+         # Total discount given
+         total_discount = Sum(
+            'orders__discount',
+            filter=Q(orders__sold_at__year=current_year)
+        ),
+
+        # Net amount actually paid — this is what we display
+        net_sale = Sum(
+            'orders__final_price',
+            filter=Q(orders__sold_at__year=current_year)
+        ),
+
+        # Count of individual transactions
+        order_count = Count(
+            'orders',
+            filter=Q(orders__sold_at__year=current_year),
+            distinct=True
+        ),
+
+        # Last purchase date
+        last_order=Max('orders__sold_at'),
+    ).order_by('-net_sale')
+
+    # Convert Decimal to float and handle None for customers with no orders
+    customer_data = []
+    for c in customers:
+        net = float(c.net_sale or 0)
+        customer_data.append({
+            'id': c.pk,
+            'name': c.name,
+            'phone_number': c.phone_number,
+            'registered_on': c.created_at,
+            'order_count': c.order_count or 0,
+            'total_quantity': c.total_qty or 0,
+            'total_discount': float(c.total_discount or 0),
+            'net_sale': net,
+            'last_order': c.last_order,
+            #'tier': get_tier(net), 
+        })
+    # Grand total across all customers
+    grand_total = sum(c['net_sale'] for c in customer_data)
+    total_customers = len(customer_data)
+    active_customers = sum(1 for c in customer_data if c['net_sale'] > 0)
+    inactive_customers = max(0, total_customers - active_customers)
+
+    context = {
+        'customer_data': customer_data,
+        'current_year': current_year,
+        'grand_total': grand_total,
+        'total_customers': total_customers,
+        'active_customers': active_customers,
+        'inactive_customers': inactive_customers,
+    }    
+
+    return render(request,'pharmacy/pro-customer-report.html',context)
+
+"""def get_tier(net_sale):
+    #Assign a tier label based on yearly spend.
+    if net_sale >= 50000:
+        return {'label': 'Platinum', 'color': '#7C3AED'}
+    elif net_sale >= 20000:
+        return {'label': 'Gold',     'color': '#F2A93B'}
+    elif net_sale >= 5000:
+        return {'label': 'Silver',   'color': '#5C6F6C'}
+    elif net_sale > 0:
+        return {'label': 'Bronze',   'color': '#C2855A'}
+    else:
+        return {'label': 'Inactive', 'color': '#94A6A3'}"""

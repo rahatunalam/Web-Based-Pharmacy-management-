@@ -1,45 +1,57 @@
-const form         = document.getElementById('medicineForm');
-const tableBody    = document.getElementById('medicineTableBody');
-const hiddenInputs = document.getElementById('hiddenInputs');
+const form          = document.getElementById('medicineForm');
+const tableBody     = document.getElementById('medicineTableBody');
+const hiddenInputs  = document.getElementById('hiddenInputs');
 const discountInput = document.getElementById('discount');
+const emptyRow      = document.getElementById('emptyRow');
+// Initialize medicine search — fills price from dropdown selection
+initMedicineSearch((medicine) => {
+    // When user selects from dropdown, focus quantity field
+    document.getElementById('saleQuantity').focus();
+});
 
-let rowCount = 0;
+let rowCount        = 0;
 let runningSubtotal = 0;
 
 const currency = n => '৳' + parseFloat(n).toLocaleString(
     undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }
 );
 
-// Updates the three summary display values
 function updateSummary() {
-    const discount   = parseFloat(discountInput.value) || 0;
-    const finalPrice = Math.max(0, runningSubtotal - discount);
+    // Read as percentage, calculate taka amount
+    const discountPercent = parseFloat(discountInput.value) || 0;
+    const discount        = runningSubtotal * (discountPercent / 100);
+    const finalPrice      = Math.max(0, runningSubtotal - discount);
 
     document.getElementById('displaySubtotal').textContent = currency(runningSubtotal);
-    document.getElementById('displayDiscount').textContent = currency(discount);
+    document.getElementById('displayDiscount').textContent = currency(discount) + ` (${discountPercent}%)`;
     document.getElementById('displayFinal').textContent    = currency(finalPrice);
 
-    // Keep hidden inputs in dbForm up to date
+    // Save taka amount to hidden inputs — view stores taka, not percent
     setHidden('subtotal',    runningSubtotal);
     setHidden('discount',    discount);
     setHidden('final_price', finalPrice);
 }
 
-// Creates or updates a single hidden input inside dbForm
 function setHidden(name, value) {
     let input = document.getElementById('hidden_' + name);
     if (!input) {
-        input = document.createElement('input');
-        input.type = 'hidden';
-        input.id   = 'hidden_' + name;
-        input.name = name;
+        input        = document.createElement('input');
+        input.type   = 'hidden';
+        input.id     = 'hidden_' + name;
+        input.name   = name;
         hiddenInputs.appendChild(input);
     }
     input.value = value;
 }
 
 function updateTotalCount() {
-    setHidden('total_count', tableBody.querySelectorAll('tr').length);
+    // ✅ Only count rows with data-index — ignores the emptyRow placeholder
+    const count = tableBody.querySelectorAll('tr[data-index]').length;
+    setHidden('total_count', count);
+
+    // Update the badge in the card header
+    const badge = document.getElementById('itemCount');
+    if (badge) badge.textContent = count + (count === 1 ? ' item' : ' items');
 }
 
 function attachDeleteHandler(button, index, itemTotal) {
@@ -48,17 +60,19 @@ function attachDeleteHandler(button, index, itemTotal) {
         hiddenInputs.querySelectorAll(`[data-row="${index}"]`)
             .forEach(input => input.remove());
 
-        // Subtract this row's total from the running subtotal
         runningSubtotal -= itemTotal;
         updateTotalCount();
         updateSummary();
+
+        // Show empty message again if no rows left
+        if (emptyRow && tableBody.querySelectorAll('tr[data-index]').length === 0) {
+            emptyRow.style.display = '';
+        }
     });
 }
 
-// Recalculate whenever discount field changes
 discountInput.addEventListener('input', updateSummary);
 
-// Add button — fetch price from Django then add row
 form.addEventListener('submit', async e => {
     e.preventDefault();
 
@@ -89,10 +103,17 @@ form.addEventListener('submit', async e => {
     const itemTotal = price * quantity;
     const index     = rowCount;
 
-    // Add visual row to table
+    // Hide the empty placeholder
+    if (emptyRow) emptyRow.style.display = 'none';
+
+    // Add row with data-index so updateTotalCount can find it
     const row = document.createElement('tr');
+    row.dataset.index = index;   // ✅ required for tr[data-index] selector
     row.innerHTML = `
-        <td>${name}</td>
+        <td style="color:var(--ink-faint); font-size:12px;">
+            ${rowCount + 1}
+        </td>
+        <td style="font-weight:600;">${name}</td>
         <td><span class="pill">${data.product_type}</span></td>
         <td class="num">${quantity}</td>
         <td class="num">${currency(price)}</td>
@@ -114,15 +135,14 @@ form.addEventListener('submit', async e => {
     // Inject hidden inputs for this row
     const fields = { name, quantity, price, total: itemTotal };
     for (const [key, val] of Object.entries(fields)) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = `sale_${index}_${key}`;
-        input.value = val;
+        const input       = document.createElement('input');
+        input.type        = 'hidden';
+        input.name        = `sale_${index}_${key}`;
+        input.value       = val;
         input.dataset.row = index;
         hiddenInputs.appendChild(input);
     }
 
-    // Update running totals
     runningSubtotal += itemTotal;
     rowCount++;
     updateTotalCount();

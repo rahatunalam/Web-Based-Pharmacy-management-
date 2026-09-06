@@ -261,7 +261,7 @@ input, select{font-family:inherit;}
 }
 .form-row{
   display:grid;
-  grid-template-columns:1.5fr 1.1fr 0.8fr 0.9fr auto;
+  grid-template-columns: repeat(4, 1fr) auto;
   gap:14px;
   align-items:end;
 }
@@ -278,6 +278,7 @@ input, select{font-family:inherit;}
   letter-spacing:0.03em;
 }
 .field input, .field select{
+  width: 100%;  
   border:1px solid var(--border);
   border-radius:var(--radius-sm);
   padding:11px 12px;
@@ -402,100 +403,68 @@ tbody tr:hover{background:#FAFCFC;}
   .form-row{grid-template-columns:1fr;}
 }
 
-/* ── Edit Medicine page ── */
-.edit-row td {
+/* ── Medicine autocomplete ── */
+.medicine-search-wrap {
+  position: relative;
+}
+.medicine-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  z-index: 200;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.medicine-dropdown.is-open { display: block; }
+
+.medicine-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background .1s;
+  border-bottom: 1px solid var(--border);
+}
+.medicine-option:last-child { border-bottom: none; }
+.medicine-option:hover {
   background: var(--accent-soft);
-  padding: 10px 16px;
-  border-bottom: 2px solid var(--accent-light);
+  color: var(--accent-dark);
 }
-.edit-row input {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  font-size: 13px;
-  width: 100%;
-  background: #fff;
-  color: var(--ink);
-  transition: border-color .15s, box-shadow .15s;
-}
-.edit-row input:focus {
-  outline: none;
-  border-color: var(--accent-light);
-  box-shadow: 0 0 0 3px rgba(20,184,166,0.15);
-}
-.edit-actions {
+.medicine-option__left {
   display: flex;
-  gap: 8px;
-  align-items: center;
+  flex-direction: column;
+  gap: 2px;
 }
-.btn-save {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background .15s;
-}
-.btn-save:hover { background: var(--accent-dark); }
-
-.btn-cancel {
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 14px;
-  font-size: 13px;
+.medicine-option__name {
   font-weight: 600;
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition: background .15s;
+  font-size: 13.5px;
 }
-.btn-cancel:hover { background: var(--border); }
-
-/* Action buttons in table row */
-.action-group {
+.medicine-option__type {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+.medicine-option__right {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
 }
-.btn-edit {
-  background: none;
-  border: 1px solid var(--accent-light);
-  border-radius: 6px;
-  padding: 5px 12px;
-  font-size: 12px;
+.medicine-option__price {
+  font-size: 13px;
   font-weight: 700;
   color: var(--accent);
-  cursor: pointer;
-  transition: background .15s, color .15s;
-  white-space: nowrap;
 }
-.btn-edit:hover {
-  background: var(--accent-soft);
-  border-color: var(--accent);
+.medicine-option__stock {
+  font-size: 11px;
+  font-weight: 600;
 }
-.btn-del {
-  background: none;
-  border: 1px solid #F3C6C3;
-  border-radius: 6px;
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--data-coral);
-  cursor: pointer;
-  transition: background .15s, color .15s;
-  white-space: nowrap;
-}
-.btn-del:hover {
-  background: #FBEAE9;
-  border-color: var(--data-coral);
-}
-.error-list p {
-  font-size: 12px;
-  color: var(--data-coral);
-  margin-top: 3px;
-}
+.medicine-option__stock.low { color: var(--data-coral); }
+.medicine-option__stock.ok  { color: var(--ink-faint);  }
