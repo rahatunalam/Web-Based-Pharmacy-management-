@@ -10,6 +10,7 @@ class Medicine(models.Model):
     quantity = models.PositiveBigIntegerField()
     price_per_unit = models.DecimalField(max_digits=10,decimal_places=2)
     total_price = models.DecimalField(max_digits=10,decimal_places=2)
+    total_dis_price = models.DecimalField(max_digits=10,decimal_places=2,default=0.00)
 
     def __str__(self):
         return self.name
@@ -57,6 +58,25 @@ class Wholesale(models.Model):
     def __str__(self):
         return f"Wholesale — {self.buyer_name} — {self.sold_at.date()}"
 
+class Company(models.Model):
+    company =  models.CharField(max_length=150,blank=True)
+    discount_price = models.DecimalField(max_digits=10,decimal_places=2,default=0.00)
+    
+    def __str__(self):
+        return f"{self.company}"
+
+class Invoice(models.Model):
+    company = models.ForeignKey(
+            Company,
+            on_delete= models.CASCADE,
+            related_name='invoice'
+    )
+    invoice_number = models.CharField(max_length=150)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.invoice_number}"
+    
 class Purchase(models.Model):
     medicine = models.ForeignKey(
             Medicine,
@@ -67,7 +87,13 @@ class Purchase(models.Model):
     quantity = models.PositiveIntegerField()
     price_per_unit = models.DecimalField(max_digits=10, decimal_places=2)
     total_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    total_dis_price = models.DecimalField(max_digits=10,decimal_places=2,default=0.00)
     purchased_at = models.DateTimeField(default=timezone.now)
+    invoice_number = models.CharField(
+        max_length=150,
+        blank=True,
+        default=''
+    )
     added_by = models.ForeignKey(
                 User,
                 on_delete=models.CASCADE,

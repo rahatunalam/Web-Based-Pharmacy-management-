@@ -147,16 +147,6 @@ function attachDeleteHandler(button, index, itemTotal) {
     });
 }
 
-function submitSale(shouldPrint) {
-    const realRows = tableBody.querySelectorAll('tr[data-index]').length;
-    if (realRows === 0) {
-        alert('Please add at least one medicine before confirming.');
-        return;
-    }
-    setHidden('print', shouldPrint ? '1' : '0');
-    document.getElementById('dbForm').submit();
-}
-
 discountInput.addEventListener('input', updateSummary);
 
 // Validate customer is selected before submitting
@@ -227,7 +217,7 @@ form.addEventListener('submit', async e => {
     tableBody.appendChild(row);
     attachDeleteHandler(row.querySelector('.row-delete'), index, itemTotal);
 
-    const fields = { name, quantity, price, total: itemTotal };
+    const fields = { name, type: data.product_type, quantity, price, total: itemTotal };
     for (const [key, val] of Object.entries(fields)) {
         const input = document.createElement('input');
         input.type        = 'hidden';
@@ -244,3 +234,13 @@ form.addEventListener('submit', async e => {
     form.reset();
     document.getElementById('productName').focus();
 });
+
+function submitSale(shouldPrint) {
+    const realRows = tableBody.querySelectorAll('tr[data-index]').length;
+    if (realRows === 0) {
+        alert('Please add at least one medicine before confirming.');
+        return;
+    }
+    setHidden('print', shouldPrint ? '1' : '0');
+    document.getElementById('dbForm').submit();
+}

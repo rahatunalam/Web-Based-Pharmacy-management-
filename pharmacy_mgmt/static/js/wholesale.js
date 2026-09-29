@@ -4,33 +4,37 @@ const hiddenInputs  = document.getElementById('hiddenInputs');
 const discountInput = document.getElementById('discount');
 const emptyRow      = document.getElementById('emptyRow');
 
-initMedicineSearch((medicine) => {
-    // Optionally fill the custom price field with the default price
-    const customPriceInput = document.getElementById('customPrice');
-    if (customPriceInput) {
-        customPriceInput.placeholder = `Default: ৳${medicine.price.toFixed(2)}`;
-    }
-    document.getElementById('saleQuantity').focus();
-});
+// Autocomplete initialization
+if (typeof initMedicineSearch === 'function') {
+    initMedicineSearch((medicine) => {
+        const customPriceInput = document.getElementById('customPrice');
+        if (customPriceInput) {
+            customPriceInput.placeholder = `Default: ৳${medicine.price.toFixed(2)}`;
+        }
+        document.getElementById('saleQuantity').focus();
+    });
+}
 
 let rowCount = 0;
 let runningSubtotal = 0;
+let runningDiscount = 0;
 
 const currency = n => '৳' + parseFloat(n).toLocaleString(
     undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }
 );
 
 function updateSummary() {
-    const discountPercent = parseFloat(discountInput.value) || 0;
-    const discount   = runningSubtotal*(discountPercent/100);
     const finalPrice = Math.max(0, runningSubtotal - discount);
+    const effectivePercent = runningSubtotal > 0 
+        ? ((runningDiscount / runningSubtotal) * 100).toFixed(1) 
+        : 0;
 
     document.getElementById('displaySubtotal').textContent = currency(runningSubtotal);
-    document.getElementById('displayDiscount').textContent = currency(discount);
+    document.getElementById('displayDiscount').textContent = `\({currency(runningDiscount)} (\){effectivePercent}%)`;
     document.getElementById('displayFinal').textContent    = currency(finalPrice);
 
-    setHidden('subtotal',    runningSubtotal);
-    setHidden('discount',    discount);
+    setHidden('subtotal',    runningSubtotal.toFixed(2));
+    setHidden('discount',    discount.toFixed(2));
     setHidden('final_price', finalPrice);
 }
 
@@ -52,13 +56,14 @@ function updateTotalCount() {
     setHidden('total_count', realRows);
 }
 
-function attachDeleteHandler(button, index, itemTotal) {
+function attachDeleteHandler(button, index, itemTotal,itemDiscount) {
     button.addEventListener('click', () => {
         button.closest('tr').remove();
         hiddenInputs.querySelectorAll(`[data-row="${index}"]`)
             .forEach(input => input.remove());
 
         runningSubtotal -= itemTotal;
+        runningDiscount -= itemDiscount;
         updateTotalCount();
         updateSummary();
 
@@ -67,16 +72,6 @@ function attachDeleteHandler(button, index, itemTotal) {
             emptyRow.style.display = '';
         }
     });
-}
-
-function submitSale(shouldPrint) {
-    const realRows = tableBody.querySelectorAll('tr[data-index]').length;
-    if (realRows === 0) {
-        alert('Please add at least one medicine before confirming.');
-        return;
-    }
-    setHidden('print', shouldPrint ? '1' : '0');
-    document.getElementById('dbForm').submit();
 }
 
 discountInput.addEventListener('input', updateSummary);
@@ -119,7 +114,10 @@ form.addEventListener('submit', async e => {
                         ? customPrice
                         : data.price;
     const itemTotal = price * quantity;
-    const index     = rowCount;
+    const itemDiscountAmount = grossTotal * (discountPercent / 100);
+    const itemFinalTotal     = Math.max(0, grossTotal - itemDiscountAmount);
+    const index              = rowCount;
+
 
     // Hide the empty placeholder row
     emptyRow.style.display = 'none';
@@ -165,3 +163,13 @@ form.addEventListener('submit', async e => {
     form.reset();
     document.getElementById('productName').focus();
 });
+
+function submitSale(shouldPrint) {
+    const realRows = tableBody.querySelectorAll('tr[data-index]').length;
+    if (realRows === 0) {
+        alert('Please add at least one medicine before confirming.');
+        return;
+    }
+    setHidden('print', shouldPrint ? '1' : '0');
+    document.getElementById('dbForm').submit();
+}

@@ -1,3 +1,5 @@
+let selectedMedicineType = '';
+
 function initMedicineSearch(onSelect) {
     const input    = document.getElementById('productName');
     const dropdown = document.getElementById('medicineDropdown');
@@ -71,8 +73,11 @@ function initMedicineSearch(onSelect) {
     function selectMedicine(m) {
         // Fill the input with the selected name
         input.value = m.name;
-        closeDropdown();
 
+        // ✅ remember the type of the selected medicine
+        selectedMedicineType = m.product_type;
+        
+        closeDropdown();
         // Call the page-specific callback with the medicine data
         if (onSelect) onSelect(m);
     }
@@ -123,4 +128,9 @@ function initMedicineSearch(onSelect) {
             closeDropdown();
         }
     });
+    
+    return {
+        getSelectedType: () => selectedMedicineType,
+        reset: () => { selectedMedicineType = ''; }
+    };
 }

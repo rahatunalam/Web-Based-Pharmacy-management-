@@ -1,3 +1,7 @@
+from decimal import Decimal, InvalidOperation
+from itertools import groupby
+import zoneinfo
+
 from django.shortcuts import render,redirect,get_object_or_404
 from django.contrib.auth import authenticate,login,logout
 from django.contrib.auth.decorators import login_required
@@ -8,7 +12,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib import messages
 from .forms import LoginForm
-from .models import Medicine,Sale,Wholesale,Purchase,ProCustomer,ProCustomerSale
+from .models import Medicine,Sale,Wholesale,Purchase,ProCustomer,ProCustomerSale,Company,Invoice
 from datetime import timedelta,date
 import calendar
 import json
@@ -114,72 +118,117 @@ def add_medicine(request):
             type_ = request.POST.get(f'medicine_{i}_type')
             quantity = request.POST.get(f'medicine_{i}_quantity')
             price = request.POST.get(f'medicine_{i}_price')
+            invoice_number = request.POST.get(f'medicine_{i}_invoice', '')  # ← add
             total_price = request.POST.get(f'medicine_{i}_total_price')
+            total_dis_price = request.POST.get(f'medicine_{i}_total_dis_price')
 
             if name and type_ and quantity and price:
                 quantity= int(quantity)
                 price =  float(price)
-                 
-                medicine = Medicine.objects.create(
-                    name=name,
-                    company=company, 
-                    product_type=type_,
-                    quantity=int(quantity),
-                    price_per_unit=float(price),
-                    total_price =float(total_price)
-                )
+                total_price = float(total_price)
+                total_dis_price = float(total_dis_price or total_price)
 
+                # Check for an existing medicine with the same name + type
+                existing = Medicine.objects.filter(
+                    name__iexact=name,
+                    product_type__iexact=type_
+                ).order_by('id').first()
+
+                if existing:
+                    # Restock: add to existing quantity, update price to the new one
+                    existing.quantity += quantity
+                    existing.price_per_unit = price
+                    existing.total_price = (existing.total_price or 0) + total_price
+                    if company:
+                        existing.company = company
+                    if invoice_number:
+                        existing.invoice_number = invoice_number
+                    existing.save()
+                    medicine = existing
+
+                else:
+                    medicine = Medicine.objects.create(
+                        name=name,
+                        company=company, 
+                        product_type=type_,
+                        quantity=int(quantity),
+                        price_per_unit=float(price),
+                        total_price =float(total_price),
+                        total_dis_price = float(total_dis_price),
+                    )
+                # 2. Now create the Purchase record, referencing the real medicine
                 Purchase.objects.create(
                     medicine=medicine,
                     company=company or '',
                     quantity=quantity,
                     price_per_unit=price,
+                    invoice_number=invoice_number,
                     total_cost=quantity * price,
+                    total_dis_price= float(total_dis_price),
                     added_by=request.user,
                 )
+
+                if company and invoice_number:
+                    company_obj = Company.objects.filter(company__iexact=company).first()
+                    if not company_obj:
+                        company_obj = Company.objects.create(company=company)
+
+                    invoice_exists = Invoice.objects.filter(
+                        company=company_obj,
+                        invoice_number__iexact=invoice_number
+                    ).exists()
+                    if not invoice_exists:
+                        Invoice.objects.create(company=company_obj, invoice_number=invoice_number)
         return redirect('pharmacy:add_medicine')
                  
     return render(request,'pharmacy/add-medicine.html')
 
 @login_required
-def s_add_medicine(request):
+def get_companies(request):
+    companies = Company.objects.all().order_by('company')
+    return JsonResponse({
+        'companies': [{'id': c.pk, 'name': c.company, 'discount': str(c.discount_price)} for c in companies]
+    })
 
-    if request.method == 'POST':
-        total_count = int(request.POST.get('total_count',0))
+@login_required
+def add_company_ajax(request):
+    if request.method != 'POST':
+        return JsonResponse({'success':False,'error': 'Invalid request.'})
+    name = request.POST.get('company_name','').strip()
+    discount_raw = request.POST.get('discount', '0').strip() or '0'
+    if not name:
+        return JsonResponse({'success': False, 'error': 'Company name is required.'})
 
-        for i in range(total_count):
-            name = request.POST.get(f'medicine_{i}_name')
-            company = request.POST.get(f'medicine_{i}_company')
-            type_ = request.POST.get(f'medicine_{i}_type')
-            quantity = request.POST.get(f'medicine_{i}_quantity')
-            price = request.POST.get(f'medicine_{i}_price')
-            total_price = request.POST.get(f'medicine_{i}_total_price')
+    try:
+        discount = Decimal(discount_raw)
+    except InvalidOperation:
+        return JsonResponse({'success': False, 'error': 'Discount must be a valid number.'})
 
-            if name and type_ and quantity and price:
-                 Medicine.objects.create(
-                    name=name,
-                    company=company, 
-                    product_type=type_,
-                    quantity=int(quantity),
-                    price_per_unit=float(price),
-                    total_price =float(total_price)
-                )
-        return redirect('pharmacy:s_add_medicine')
-                 
-    return render(request,'pharmacy/s-add-medicine.html')
+    if discount < 0 or discount > 100:
+        return JsonResponse({'success': False, 'error': 'Discount must be between 0 and 100.'})
 
+    company = Company.objects.filter(company__iexact=name).first()
+
+    if company:
+        # Company already exists: update its discount to the newly entered value
+        company.discount_price = discount
+        company.save()
+    else:
+        company = Company.objects.create(company=name, discount_price=discount)
+
+    return JsonResponse({'success': True, 'id': company.pk, 'name': company.company,'discount': str(company.discount_price),})
 
 
 @login_required
 def edit_medicine(request):
     
-    search = request.GET.get('search', '')
-    medicines = None
+    search = request.GET.get('search', '').strip()
+    #invoice = request.GET.get('invoice', '').strip()
+
+    medicines = Medicine.objects.all().order_by('id')
 
     if search:
-        medicines = Medicine.objects.filter(name__icontains=search)
-    else:
-        medicines = Medicine.objects.all().order_by('name')
+        medicines = medicines.filter(name__icontains=search)
 
     return render(request, 'pharmacy/edit-medicine.html', {
         'medicines': medicines,
@@ -203,10 +252,18 @@ def edit_medicine_save(request,pk):
             errors.append('Company name is required')
         if not quantity or not quantity.isdigit():
             errors.append('Quantity must be a valid number.')
+
+        parsed_price = None
         try:
-            float(price)
+            parsed_price=float(price)
         except(ValueError,TypeError):
             errors.append('Price must be a vlaid number.')
+
+        parsed_qty = None
+        try:
+            parsed_qty = int(quantity)
+        except(ValueError,TypeError):
+            errors.append('Quantity must be a vlaid number.')
 
         if errors:
             # Re-render the list with the inline form open
@@ -226,8 +283,9 @@ def edit_medicine_save(request,pk):
             })
         medicine.name = name
         medicine.company = company
-        medicine.quantity = int(quantity)
-        medicine.price_per_unit = float(price)
+        medicine.quantity = parsed_qty
+        medicine.price_per_unit = parsed_price
+        medicine.total_price = round(parsed_price*parsed_qty,2)
         medicine.save()
 
         return redirect(
@@ -241,9 +299,131 @@ def edit_medicine_save(request,pk):
 def delete_med(request,pk):
     if request.method == 'POST':
         medicine = get_object_or_404(Medicine, pk=pk)
+        #purchase = get_object_or_404(Purchase, pk=pk)
         medicine.delete()
-    return redirect('pharmacy:delete_medicine')
+    return redirect('pharmacy:delete_med')
 
+def _build_invoice_groups(request):
+    company_query = request.GET.get('company', '').strip()
+    invoice_query = request.GET.get('invoice', '').strip()
+
+    purchases = Purchase.objects.select_related('medicine').all()
+
+    if company_query:
+        purchases = purchases.filter(company__icontains=company_query)
+    if invoice_query:
+        purchases = purchases.filter(invoice_number__icontains=invoice_query)
+
+    purchases = purchases.order_by('company', 'invoice_number')
+    invoice_groups = []
+    for (company, invoice_number), items in groupby(
+        purchases, key=lambda p: (p.company, p.invoice_number)
+    ):
+        invoice_groups.append({
+            'company': company,
+            'invoice_number': invoice_number,
+            'items': list(items),
+        })
+
+    return invoice_groups, purchases.count(), company_query, invoice_query
+
+@login_required
+def edit_invoice_medicine(request):
+    invoice_groups, total_count, company_query, invoice_query = _build_invoice_groups(request)
+
+    return render(request,'pharmacy/edit-invoice-medicine.html',{
+        'invoice_groups': invoice_groups,
+        'total_purchases': total_count,
+        'company_query': company_query,
+        'invoice_query': invoice_query,
+    })
+
+@login_required
+def edit_invoice_medicine_save(request,pk):
+    purchase = get_object_or_404(Purchase,pk=pk)
+
+    if request.method == 'POST':
+        quantity = request.POST.get('quantity')
+        price = request.POST.get('price')
+
+        edit_errors = []
+        if not quantity:
+            edit_errors.append('Quantity is required.')
+        if not price:
+            edit_errors.append('Price is required.')
+
+        if not edit_errors:
+            try:
+                new_quantity = int(quantity)
+                new_price = float(price)
+                if new_quantity < 0 or new_price < 0:
+                    edit_errors.append('Quantity and price must be zero or positive.')
+            except ValueError:
+                edit_errors.append('Quantity and price must be valid numbers.')
+        if edit_errors:
+            invoice_groups, total_count, company_query, invoice_query = _build_invoice_groups(request)
+            return render(request, 'pharmacy/edit-invoice-medicine.html', {
+                'invoice_groups': invoice_groups,
+                'total_purchases': total_count,
+                'company_query': company_query,
+                'invoice_query': invoice_query,
+                'editing_pk': purchase.pk,
+                'edit_errors': edit_errors,
+                'edit_values': {'quantity': quantity, 'price': price},
+            })
+
+        #medicine = purchase.medicine
+        # Stock quantity is a running total across ALL invoices — adjusting by
+        # the difference is correct regardless of which invoice this is.
+        #quantity_diff = new_quantity - purchase.quantity
+        #medicine.quantity = max(0, medicine.quantity + quantity_diff)
+
+        # Update THIS purchase's own record — always safe, always scoped to this invoice only.
+        purchase.quantity = new_quantity
+        purchase.price_per_unit = new_price
+        purchase.total_cost = new_quantity * new_price
+        purchase.save()
+
+        # Only let the medicine's CURRENT price follow this edit if this purchase
+        # is genuinely the most recent one for this medicine. Otherwise, editing
+        # an old invoice would incorrectly roll back today's selling price.
+        #latest_purchase = Purchase.objects.filter(medicine=medicine).order_by('-purchased_at', '-id').first()
+        #if latest_purchase and latest_purchase.pk == purchase.pk:
+        #    medicine.price_per_unit = new_price
+        return redirect('pharmacy:edit_invoice_medicine')
+    
+    return redirect('pharmacy:edit_invoice_medicine')
+
+@login_required
+def delete_invoice_medicine(request,pk):
+    #purchase = get_object_or_404(Purchase, pk=pk)
+    if request.method == 'POST':
+        purchase = get_object_or_404(Purchase,pk)
+        purchase.delete()
+
+    '''if request.method == 'POST':
+        medicine = purchase.medicine
+        was_latest = False
+
+        latest_purchase = Purchase.objects.filter(medicine=medicine).order_by('-purchased_at', '-id').first()
+        if latest_purchase and latest_purchase.pk == purchase.pk:
+            was_latest = True
+
+        medicine.quantity = max(0, medicine.quantity - purchase.quantity)
+        purchase.delete()
+
+        # If we just deleted the invoice that was setting the current price,
+        # fall back to whichever purchase is now the most recent remaining one.
+        if was_latest:
+            new_latest = Purchase.objects.filter(medicine=medicine).order_by('-purchased_at', '-id').first()
+            if new_latest:
+                medicine.price_per_unit = new_latest.price_per_unit
+            # if no purchases remain at all, leave price_per_unit as-is —
+            # nothing better to fall back to.
+
+        medicine.save()'''
+    return redirect('pharmacy:edit_invoice_medicine')
+     
 @login_required
 def add_salesman(request):
 
@@ -301,13 +481,33 @@ def sale_medicines(request):
 
         for i in range(total_count):
             name =  request.POST.get(f'sale_{i}_name')
+            product_type = request.POST.get(f'sale_{i}_type', '')  # ← read type
             quantity   = int(request.POST.get(f'sale_{i}_quantity', 0))
             price      = float(request.POST.get(f'sale_{i}_price', 0))
             item_total = float(request.POST.get(f'sale_{i}_total', 0))
 
+            if not name or not quantity or not price:
+                continue
+
+            quantity   = int(quantity)
+            price      = float(price)
+            item_total = float(item_total)
+
             try:
-                medicine = Medicine.objects.get(name__iexact=name)
-            except:
+                # ✅ filter by name AND type — handles duplicate names
+                if product_type:
+                    medicine = Medicine.objects.get(
+                        name__iexact=name,
+                        product_type__iexact=product_type
+                    )
+                else:
+                    medicine = Medicine.objects.filter(
+                        name__iexact=name
+                    ).first()
+                    if not medicine:
+                        errors.append(f"Medicine '{name}' not found.")
+                        continue
+            except Medicine.DoesNotExist:
                 errors.append(f"Medicine '{name}' not found.")
                 continue
 
@@ -347,7 +547,9 @@ def sale_medicines(request):
 
         # ← store receipt in session if print was requested
         if should_print and saved_items:
-            now = timezone.localtime()
+            current_utc = timezone.now()
+            bd_tz = zoneinfo.ZoneInfo("Asia/Dhaka")
+            now = timezone.localtime(current_utc, bd_tz)
             request.session['last_receipt'] = {
                 'sale_type':   'Retail Sale',
                 'invoice_no':  f"INV-{now.strftime('%Y%m%d-%H%M%S')}",
@@ -387,8 +589,19 @@ from django.http import JsonResponse
 @login_required
 def get_medicine_price(request):
     name = request.GET.get('name', '').strip()
+    product_type = request.GET.get('type', '').strip()
     try:
-        medicine = Medicine.objects.get(name__iexact=name)
+        if product_type:
+            medicine = Medicine.objects.get(
+                name__iexact=name,
+                product_type__iexact=product_type
+            )
+        else:
+            # fallback — if no type sent, get the first match
+            medicine = Medicine.objects.filter(
+                name__iexact=name).first()
+            if not medicine:
+                return JsonResponse({'found': False})
         return JsonResponse({
             'found': True,
             'price': float(medicine.price_per_unit),
@@ -397,6 +610,17 @@ def get_medicine_price(request):
         })
     except Medicine.DoesNotExist:
         return JsonResponse({'found': False})
+    except Medicine.MultipleObjectsReturned:
+        # Should not happen now, but safe fallback
+        medicine = Medicine.objects.filter(
+            name__iexact=name
+        ).first()
+        return JsonResponse({
+            'found':        True,
+            'price':        float(medicine.price_per_unit),
+            'stock':        medicine.quantity,
+            'product_type': medicine.product_type,
+        })
 
 @login_required
 def wholesale(request):
@@ -416,6 +640,7 @@ def wholesale(request):
 
         for i in range(total_count):
             name = request.POST.get(f'sale_{i}_name')
+            product_type = request.POST.get(f'sale_{i}_type', '')  # ← read type
             quantity = request.POST.get(f'sale_{i}_quantity')
             price = request.POST.get(f'sale_{i}_price')
             item_total = request.POST.get(f'sale_{i}_total')
@@ -428,7 +653,19 @@ def wholesale(request):
             item_total = float(item_total)
 
             try:
-                medicine = Medicine.objects.get(name__iexact=name)
+                # ✅ filter by name AND type — handles duplicate names
+                if product_type:
+                    medicine = Medicine.objects.get(
+                        name__iexact=name,
+                        product_type__iexact=product_type
+                    )
+                else:
+                    medicine = Medicine.objects.filter(
+                        name__iexact=name
+                    ).first()
+                    if not medicine:
+                        errors.append(f"Medicine '{name}' not found.")
+                        continue
             except Medicine.DoesNotExist:
                 errors.append(f"Medicine '{name}' not found.")
                 continue
@@ -469,7 +706,9 @@ def wholesale(request):
 
         # ← store receipt in session if print was requested
         if should_print and saved_items:
-            now = timezone.localtime()
+            current_utc = timezone.now()
+            bd_tz = zoneinfo.ZoneInfo("Asia/Dhaka")
+            now = timezone.localtime(current_utc, bd_tz)
             request.session['last_receipt'] = {
                 'sale_type':   'Wholesale',
                 'invoice_no':  f"WHL-{now.strftime('%Y%m%d-%H%M%S')}",
@@ -491,8 +730,20 @@ def wholesale(request):
 @login_required
 def get_wholesale_price(request):
     name = request.GET.get('name', '').strip()
+    product_type = request.GET.get('type', '').strip()
     try:
-        medicine = Medicine.objects.get(name__iexact=name)
+       # ✅ filter by both name AND type to get exactly one result
+        if product_type:
+            medicine = Medicine.objects.get(
+                name__iexact=name,
+                product_type__iexact=product_type
+            )
+        else:
+            # fallback — if no type sent, get the first match
+            medicine = Medicine.objects.filter(
+                name__iexact=name).first()
+            if not medicine:
+                return JsonResponse({'found': False})
         return JsonResponse({
             'found': True,
             'price': float(medicine.price_per_unit),
@@ -501,30 +752,89 @@ def get_wholesale_price(request):
         })
     except Medicine.DoesNotExist:
         return JsonResponse({'found': False})
+    except Medicine.MultipleObjectsReturned:
+        # Should not happen now, but safe fallback
+        medicine = Medicine.objects.filter(
+            name__iexact=name
+        ).first()
+        return JsonResponse({
+            'found':        True,
+            'price':        float(medicine.price_per_unit),
+            'stock':        medicine.quantity,
+            'product_type': medicine.product_type,
+        })
     
 @login_required
 def update_medicine(request):
     if request.method == 'POST':
-            total_count = int(request.POST.get('total_count',0))
-    
-            for i in range(total_count):
-                name = request.POST.get(f'medicine_{i}_name')
-                company = request.POST.get(f'medicine_{i}_company')
-                type_ = request.POST.get(f'medicine_{i}_type')
-                quantity = request.POST.get(f'medicine_{i}_quantity')
-                price = request.POST.get(f'medicine_{i}_price')
-                total_price = request.POST.get(f'medicine_{i}_total_price')
-    
-                if name and type_ and quantity and price:
-                     Medicine.objects.create(
+        total_count = int(request.POST.get('total_count',0))
+        
+        for i in range(total_count):
+            name = request.POST.get(f'medicine_{i}_name')
+            company = request.POST.get(f'medicine_{i}_company')
+            type_ = request.POST.get(f'medicine_{i}_type')
+            quantity = request.POST.get(f'medicine_{i}_quantity')
+            price = request.POST.get(f'medicine_{i}_price')
+            invoice_number = request.POST.get(f'medicine_{i}_invoice', '')  # ← add
+            total_price = request.POST.get(f'medicine_{i}_total_price')
+            total_dis_price = request.POST.get(f'medicine_{i}_total_dis_price')
+        
+            if name and type_ and quantity and price:
+                quantity= int(quantity)
+                price =  float(price)
+                total_price = float(total_price)
+                total_dis_price = float(total_price)
+
+                # Check for an existing medicine with the same name + type
+                existing = Medicine.objects.filter(
+                    name__iexact=name,
+                    product_type__iexact=type_
+                ).order_by('id').first()
+
+                if existing:
+                    # Restock: add to existing quantity, update price to the new one
+                    existing.quantity += quantity
+                    existing.price_per_unit = price
+                    existing.total_price = (existing.total_price or float('0')) + total_price
+                    if company:
+                        existing.company = company
+                    if invoice_number:
+                        existing.invoice_number = invoice_number
+                    existing.save()
+                    medicine = existing
+                else:
+                    medicine = Medicine.objects.create(
                         name=name,
                         company=company, 
                         product_type=type_,
                         quantity=int(quantity),
                         price_per_unit=float(price),
-                        total_price =float(total_price)
+                        total_price =float(total_price),
+                        total_dis_price = float(total_dis_price),
                     )
-            return redirect('pharmacy:update_medicine')
+        
+                Purchase.objects.create(
+                    medicine=medicine,
+                    company=company or '',
+                    quantity=quantity,
+                    price_per_unit=price,
+                    total_cost=quantity * price,
+                    total_dis_price = float(total_dis_price),
+                    invoice_number = invoice_number,
+                    added_by=request.user,
+                )
+                if company and invoice_number:
+                    company_obj = Company.objects.filter(company__iexact=company).first()
+                    if not company_obj:
+                        company_obj = Company.objects.create(company=company)
+
+                    invoice_exists = Invoice.objects.filter(
+                        company=company_obj,
+                        invoice_number__iexact=invoice_number
+                    ).exists()
+                    if not invoice_exists:
+                        Invoice.objects.create(company=company_obj, invoice_number=invoice_number)
+        return redirect('pharmacy:update_medicine')
                      
     return render(request,'pharmacy/update-medicine.html')
 
@@ -585,9 +895,29 @@ def sales_report(request):
     monthly_data = None
     yearly_data = None
 
+    weekly_totals  = None
+    monthly_totals = None
+    yearly_totals  = None
+
     sale_total_today      = 0
     wholesale_total_today = 0
     purchase_total_today  = 0
+
+    # Options for dropdowns
+    month_choices = [{'num':i,'name':calendar.month_name[i]} for i in range(1,13)]
+    #Years list: current year down 5 years
+    year_choices = list(range(today.year,today.year-6,-1))
+
+    # Parse selected month and year
+    try:
+        selected_month = int(request.GET.get('month', today.month))
+    except (ValueError, TypeError):
+        selected_month = today.month
+
+    try:
+        selected_year = int(request.GET.get('year', today.year))
+    except (ValueError, TypeError):
+        selected_year = today.year
 
     if tab == 'today':
         sales_data = Sale.objects.filter(sold_at__date=today).select_related('medicine','salesman').order_by('sold_at')
@@ -610,6 +940,8 @@ def sales_report(request):
         ]
 
         weekly_data = []
+        tot_s_qty = tot_w_qty = tot_p_qty = 0
+        tot_s_amt = tot_w_amt = tot_p_amt = 0.0
         for i in range(7):
             day = week_start+ timedelta(days=i)
 
@@ -620,6 +952,21 @@ def sales_report(request):
             sale_amt = float(day_sales['amount'] or 0)
             wholesale_amt = float(day_wholesale['amount'] or 0)
             purchase_amt = float(day_purchases['amount'] or 0)
+
+            s_qty = day_sales['qty'] or 0
+            w_qty = day_wholesale['qty'] or 0
+            p_qty = day_purchases['qty'] or 0
+
+            s_amt = float(day_sales['amount'] or 0)
+            w_amt = float(day_wholesale['amount'] or 0)
+            p_amt = float(day_purchases['amount'] or 0)
+
+            tot_s_qty += s_qty
+            tot_w_qty += w_qty
+            tot_p_qty += p_qty
+            tot_s_amt += s_amt
+            tot_w_amt += w_amt
+            tot_p_amt += p_amt
 
             weekly_data.append({
                 'day_name':         day_names[i],
@@ -635,11 +982,23 @@ def sales_report(request):
                 'is_today':         day == today,
             })
 
+        weekly_totals = {
+            'sale_qty': tot_s_qty,
+            'sale_amount': tot_s_amt,
+            'wholesale_qty': tot_w_qty,
+            'wholesale_amount': tot_w_amt,
+            'purchase_qty': tot_p_qty,
+            'purchase_amount': tot_p_amt,
+            'net': (tot_s_amt + tot_w_amt) - tot_p_amt,
+        }
+
     elif tab == 'monthly':
-        days_in_month = calendar.monthrange(today.year,today.month)[1]
+        days_in_month = calendar.monthrange(selected_year, selected_month)[1]
         monthly_data = []
+        tot_s_qty = tot_w_qty = tot_p_qty = 0
+        tot_s_amt = tot_w_amt = tot_p_amt = 0.0
         for day_num in range(1,days_in_month+1):
-            day = date(today.year,today.month,day_num)
+            day = date(selected_year,selected_month,day_num)
 
             day_sales = Sale.objects.filter(sold_at__date=day).aggregate(amount=Sum('final_price'),
                                                                                      qty=Sum('quantity_sold'))
@@ -651,6 +1010,21 @@ def sales_report(request):
             sale_amt = float(day_sales['amount'] or 0)
             wholesale_amt = float(day_wholesale['amount'] or 0)
             purchase_amt = float(day_purchases['amount'] or 0)
+
+            s_qty = day_sales['qty'] or 0
+            w_qty = day_wholesale['qty'] or 0
+            p_qty = day_purchases['qty'] or 0
+
+            s_amt = float(day_sales['amount'] or 0)
+            w_amt = float(day_wholesale['amount'] or 0)
+            p_amt = float(day_purchases['amount'] or 0)
+
+            tot_s_qty += s_qty
+            tot_w_qty += w_qty
+            tot_p_qty += p_qty
+            tot_s_amt += s_amt
+            tot_w_amt += w_amt
+            tot_p_amt += p_amt
 
             monthly_data.append({
                 'label':            day.strftime('%d %b'),
@@ -665,28 +1039,55 @@ def sales_report(request):
                 'is_today':         day == today,
             })
 
+        monthly_totals = {
+            'sale_qty': tot_s_qty,
+            'sale_amount': tot_s_amt,
+            'wholesale_qty': tot_w_qty,
+            'wholesale_amount': tot_w_amt,
+            'purchase_qty': tot_p_qty,
+            'purchase_amount': tot_p_amt,
+            'net': (tot_s_amt + tot_w_amt) - tot_p_amt,
+        }
+
     elif tab == 'yearly':
-        month_names = [
+        """month_names = [
             'January', 'February', 'March', 'April',
             'May', 'June', 'July', 'August',
             'September', 'October', 'November', 'December'
-        ]
+        ]"""
         yearly_data=[]
+        tot_s_qty = tot_w_qty = tot_p_qty = 0
+        tot_s_amt = tot_w_amt = tot_p_amt = 0.0
 
         for month_num in range(1,13):
-            month_sales = Sale.objects.filter(sold_at__year=today.year,sold_at__month=month_num ).aggregate(amount=Sum('final_price'),
+            month_sales = Sale.objects.filter(sold_at__year=selected_year,sold_at__month=month_num ).aggregate(amount=Sum('final_price'),
                                                                                                  qty=Sum('quantity_sold'))
-            month_wholesale = Wholesale.objects.filter(sold_at__year=today.year,sold_at__month=month_num).aggregate(amount=Sum('final_price'),
+            month_wholesale = Wholesale.objects.filter(sold_at__year=selected_year,sold_at__month=month_num).aggregate(amount=Sum('final_price'),
                                                                                                          qty=Sum('quantity_sold'))
-            month_purchases = Purchase.objects.filter(purchased_at__year=today.year,purchased_at__month=month_num).aggregate(amount=Sum('total_cost'),
+            month_purchases = Purchase.objects.filter(purchased_at__year=selected_year,purchased_at__month=month_num).aggregate(amount=Sum('total_cost'),
                                                                                                                     qty=Sum('quantity'))
 
             sale_amt = float(month_sales['amount'] or 0)
             wholesale_amt = float(month_wholesale['amount'] or 0)
             purchase_amt = float(month_purchases['amount'] or 0)
 
+            s_qty = month_sales['qty'] or 0
+            w_qty = month_wholesale['qty'] or 0
+            p_qty = month_purchases['qty'] or 0
+
+            s_amt = float(month_sales['amount'] or 0)
+            w_amt = float(month_wholesale['amount'] or 0)
+            p_amt = float(month_purchases['amount'] or 0)
+
+            tot_s_qty += s_qty
+            tot_w_qty += w_qty
+            tot_p_qty += p_qty
+            tot_s_amt += s_amt
+            tot_w_amt += w_amt
+            tot_p_amt += p_amt
+
             yearly_data.append({
-                'label':            month_names[month_num - 1],
+                'label':            calendar.month_name[month_num],
                 'sale_qty':         month_sales['qty'] or 0,
                 'sale_amount':      sale_amt,
                 'wholesale_qty':    month_wholesale['qty'] or 0,
@@ -694,23 +1095,95 @@ def sales_report(request):
                 'purchase_qty':     month_purchases['qty'] or 0,
                 'purchase_amount':  purchase_amt,
                 'net':              (sale_amt + wholesale_amt) - purchase_amt,
-                'is_curernt':        month_num == today.month,
+                'is_current':        month_num == today.month,
             })
+
+        yearly_totals = {
+            'sale_qty': tot_s_qty,
+            'sale_amount': tot_s_amt,
+            'wholesale_qty': tot_w_qty,
+            'wholesale_amount': tot_w_amt,
+            'purchase_qty': tot_p_qty,
+            'purchase_amount': tot_p_amt,
+            'net': (tot_s_amt + tot_w_amt) - tot_p_amt,
+        }
 
     context = {
         'tab':                    tab,
         'today':                  today,
+        'selected_month': selected_month,
+        'selected_year': selected_year,
+        'month_choices': month_choices,
+        'year_choices': year_choices,
         'sales_data':             sales_data,
         'wholesale_data':         wholesale_data,
         'purchase_data':          purchase_data,
         'weekly_data':            weekly_data,
         'monthly_data':           monthly_data,
         'yearly_data':            yearly_data,
+        'weekly_totals':          weekly_totals,    # ← add
+        'monthly_totals':         monthly_totals,   # ← add
+        'yearly_totals':          yearly_totals,    # ← add
         'sale_total_today':       sale_total_today,
         'wholesale_total_today':  wholesale_total_today,
         'purchase_total_today':   purchase_total_today,
     }
     return render(request,'pharmacy/sales-report.html',context)
+
+@login_required
+def sales_history(request):
+    # Read selected date from URL — default to today
+    date_str      = request.GET.get('date', '')
+    selected_date = None
+    sales         = None
+    wholesale     = None
+    pro_sales     = None
+
+    sale_total      = 0
+    wholesale_total = 0
+    pro_total       = 0
+
+    if date_str:
+        try:
+            # Parse the date string from the date picker (format: YYYY-MM-DD)
+            selected_date = date.fromisoformat(date_str)
+
+            sales = Sale.objects.filter(
+                sold_at__date=selected_date
+            ).select_related('medicine', 'salesman').order_by('sold_at')
+
+            wholesale = Wholesale.objects.filter(
+                sold_at__date=selected_date
+            ).select_related('medicine', 'salesman').order_by('sold_at')
+            pro_sales = ProCustomerSale.objects.filter(
+                sold_at__date=selected_date
+            ).select_related('medicine', 'salesman', 'customer').order_by('sold_at')
+
+            sale_total = float(
+                sales.aggregate(t=Sum('final_price'))['t'] or 0
+            )
+            wholesale_total = float(
+                wholesale.aggregate(t=Sum('final_price'))['t'] or 0
+            )
+            pro_total = float(
+                pro_sales.aggregate(t=Sum('final_price'))['t'] or 0
+            )
+        except ValueError:
+            selected_date = None
+
+    context = {
+    'selected_date':  selected_date,
+    'date_str':       date_str,
+    'sales':          sales,
+    'wholesale':      wholesale,
+    'pro_sales':      pro_sales,
+    'sale_total':     sale_total,
+    'wholesale_total': wholesale_total,
+    'pro_total':      pro_total,
+    'grand_total':    sale_total + wholesale_total+pro_total,
+    }
+    return render(request,'pharmacy/sales-history.html',context)
+        
 
 @login_required
 def pro_customer(request):
@@ -762,8 +1235,19 @@ def get_pro_customers(request):
 @login_required
 def get_pro_customer_price(request):
     name = request.GET.get('name','').strip()
+    product_type = request.GET.get('type', '').strip()
     try:
-        medicine = Medicine.objects.get(name__iexact = name)
+        if product_type:
+            medicine = Medicine.objects.get(
+                name__iexact=name,
+                product_type__iexact=product_type
+            )
+        else:
+            # fallback — if no type sent, get the first match
+            medicine = Medicine.objects.filter(
+                name__iexact=name).first()
+            if not medicine:
+                return JsonResponse({'found': False})
         return JsonResponse({
             'found':        True,
             'price':        float(medicine.price_per_unit),
@@ -773,13 +1257,26 @@ def get_pro_customer_price(request):
 
     except Medicine.DoesNotExist:
         return JsonResponse({'found': False})
+    except Medicine.MultipleObjectsReturned:
+        # Should not happen now, but safe fallback
+        medicine = Medicine.objects.filter(
+            name__iexact=name
+        ).first()
+        return JsonResponse({
+            'found':        True,
+            'price':        float(medicine.price_per_unit),
+            'stock':        medicine.quantity,
+            'product_type': medicine.product_type,
+        })
 
 @login_required
 def pro_customer_sale(request):
     if request.method == 'POST':
+        print("=== POST received ===")
         should_print = request.POST.get('print', '0') == '1'
         customer_id = request.POST.get('customer_id')
         total_count = int(request.POST.get('total_count',0))
+        print(f"customer_id={customer_id}, total_count={total_count}")
         discount = float(request.POST.get('discount',0))
         subtotal = float(request.POST.get('subtotal',0))
         final_price = float(request.POST.get('final_price',0))
@@ -806,11 +1303,14 @@ def pro_customer_sale(request):
             })
         for i in range(total_count):
             name = request.POST.get(f'sale_{i}_name')
+            product_type = request.POST.get(f'sale_{i}_type', '')  # ← read type
             quantity = request.POST.get(f'sale_{i}_quantity')
             price = request.POST.get(f'sale_{i}_price')
             item_total = request.POST.get(f'sale_{i}_total')
         
-            if not name or quantity or not price:
+            print(f"Row {i}: name={name}, qty={quantity}, price={price}, total={item_total}")
+
+            if not name or not quantity or not price:
                 continue
         
             quantity = int(quantity)
@@ -818,7 +1318,19 @@ def pro_customer_sale(request):
             item_total = float(item_total)
         
             try:
-                medicine = Medicine.objects.get(name__iexact=name)
+                # ✅ filter by name AND type — handles duplicate names
+                if product_type:
+                    medicine = Medicine.objects.get(
+                        name__iexact=name,
+                        product_type__iexact=product_type
+                    )
+                else:
+                    medicine = Medicine.objects.filter(
+                        name__iexact=name
+                    ).first()
+                    if not medicine:
+                        errors.append(f"Medicine '{name}' not found.")
+                        continue
             except Medicine.DoesNotExist:
                 errors.append(f"Medicine '{name}' not found.")
                 continue
@@ -830,19 +1342,26 @@ def pro_customer_sale(request):
                 )
                 continue
             # Save to ProCustomerSale — separate from Sale and Wholesale
-            ProCustomerSale.objects.create(
-                customer= customer,
-                medicine=medicine,
-                salesman=request.user,
-                quantity_sold=quantity,
-                price_per_unit=price,
-                item_total=item_total,
-                subtotal=subtotal,
-                discount=discount,
-                final_price=final_price,
-            )
+            try:
+                sale = ProCustomerSale.objects.create(
+                    customer=customer,
+                    medicine=medicine,
+                    salesman=request.user,
+                    quantity_sold=quantity,
+                    price_per_unit=price,
+                    item_total=item_total,
+                    subtotal=subtotal,
+                    discount=discount,
+                    final_price=final_price,
+                )
+                print(f"CREATED sale pk={sale.pk}")
+            except Exception as e:
+                print(f"CREATE FAILED: {e}")
+                errors.append(f"Could not save sale for {name}: {e}")
+                continue
             medicine.quantity -= quantity
             medicine.save()
+            print(f"Medicine {medicine.name} qty now {medicine.quantity}")
 
             saved_items.append({
                 'name':  name,
@@ -852,30 +1371,32 @@ def pro_customer_sale(request):
                 'total': item_total,
             })
             
-            if errors:
-                procustomers = ProCustomer.objects.all().order_by('name')
-                return render(request,'pharmacy/pro-customer-sale.html',{
-                    'errors': errors,
-                    'procustomers': procustomers,
-                })
+        if errors:
+            procustomers = ProCustomer.objects.all().order_by('name')
+            return render(request,'pharmacy/pro-customer-sale.html',{
+                'errors': errors,
+                'procustomers': procustomers,
+            })
 
-            if should_print and saved_items:
-                now = timezone.localtime()
-                request.session['last_receipt'] = {
-                    'sale_type':      'Pro Customer Sale',
-                    'invoice_no':     f"PRO-{now.strftime('%Y%m%d-%H%M%S')}",
-                    'sold_at':        now.strftime('%d %b %Y  %I:%M %p'),
-                    'salesman':       request.user.get_full_name() or request.user.username,
-                    'buyer':          customer.name,
-                    'buyer_phone':    customer.phone_number,
-                    'items':          saved_items,
-                    'subtotal':       subtotal,
-                    'discount':       discount,
-                    'final_price':    final_price,
-                }
-                return redirect('pharmacy:receipt')
+        if should_print and saved_items:
+            current_utc = timezone.now()
+            bd_tz = zoneinfo.ZoneInfo("Asia/Dhaka")
+            now = timezone.localtime(current_utc, bd_tz)
+            request.session['last_receipt'] = {
+                'sale_type':      'Pro Customer Sale',
+                'invoice_no':     f"PRO-{now.strftime('%Y%m%d-%H%M%S')}",
+                'sold_at':        now.strftime('%d %b %Y  %I:%M %p'),
+                'salesman':       request.user.get_full_name() or request.user.username,
+                'buyer':          customer.name,
+                'buyer_phone':    customer.phone_number,
+                'items':          saved_items,
+                'subtotal':       subtotal,
+                'discount':       discount,
+                'final_price':    final_price,
+            }
+            return redirect('pharmacy:receipt')
 
-            return redirect('pharmacy:pro_customer_sale')
+        return redirect('pharmacy:pro_customer_sale')
         
     procustomers = ProCustomer.objects.all().order_by('name')                  
     return render(request,'pharmacy/pro-customer-sale.html',{
@@ -884,7 +1405,28 @@ def pro_customer_sale(request):
 
 @login_required
 def pro_customer_report(request):
-    current_year = timezone.localdate().year
+    today = timezone.localdate()
+
+    # Dropdown options
+    month_choices = [{'num': i, 'name': calendar.month_name[i]} for i in range(1, 13)]
+    year_choices = list(range(today.year, today.year - 6, -1))
+
+    # Read selected month & year from GET parameters (default to current)
+    try:
+        selected_month = int(request.GET.get('month', today.month))
+    except (ValueError, TypeError):
+        selected_month = today.month
+
+    try:
+        selected_year = int(request.GET.get('year', today.year))
+    except (ValueError, TypeError):
+        selected_year = today.year
+
+    # Filter condition for the specific month and year
+    monthly_filter = Q(
+        orders__sold_at__year=selected_year,
+        orders__sold_at__month=selected_month,
+    )
 
     # Get every pro customer and annotate with their yearly totals
     customers = ProCustomer.objects.annotate(
@@ -892,36 +1434,36 @@ def pro_customer_report(request):
         # Total units sold to this customer this year
         total_qty = Sum(
             'orders__quantity_sold',
-            filter=Q(orders__sold_at__year=current_year)
+            filter=monthly_filter
         ),
 
         # Total revenue before discount
         total_subtotal = Sum(
             'orders__subtotal',
-            filter=Q(orders__sold_at__year=current_year)
+            filter=monthly_filter
         ),
 
          # Total discount given
          total_discount = Sum(
             'orders__discount',
-            filter=Q(orders__sold_at__year=current_year)
+            filter=monthly_filter
         ),
 
         # Net amount actually paid — this is what we display
         net_sale = Sum(
             'orders__final_price',
-            filter=Q(orders__sold_at__year=current_year)
+            filter=monthly_filter
         ),
 
         # Count of individual transactions
         order_count = Count(
             'orders',
-            filter=Q(orders__sold_at__year=current_year),
+            filter=monthly_filter,
             distinct=True
         ),
 
         # Last purchase date
-        last_order=Max('orders__sold_at'),
+        last_order=Max('orders__sold_at',filter=monthly_filter),
     ).order_by('-net_sale')
 
     # Convert Decimal to float and handle None for customers with no orders
@@ -948,7 +1490,11 @@ def pro_customer_report(request):
 
     context = {
         'customer_data': customer_data,
-        'current_year': current_year,
+        'selected_month': selected_month,
+        'selected_year': selected_year,
+        'month_name': calendar.month_name[selected_month],
+        'month_choices': month_choices,
+        'year_choices': year_choices,
         'grand_total': grand_total,
         'total_customers': total_customers,
         'active_customers': active_customers,

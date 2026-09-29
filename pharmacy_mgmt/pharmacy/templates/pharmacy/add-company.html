@@ -1,0 +1,72 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Company · Peoples Pharma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'Style/add_medicine.css' %}">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand__text"><h1>Peoples Pharma</h1><span>Welcome, {{ request.user.username }}</span></div>
+    </div>
+    <ul class="nav">
+      <li><a href="{% url 'pharmacy:dashboard' %}" class="nav__link">Dashboard</a></li>
+      <li><a href="{% url 'pharmacy:add_medicine' %}" class="nav__link">Add Medicine</a></li>
+      <li><a href="{% url 'pharmacy:add_salesman' %}" class="nav__link">Add Salesman</a></li>
+      <li><a href="{% url 'pharmacy:pro_customer' %}" class="nav__link">Pro Customers</a></li>
+      <li><a href="{% url 'pharmacy:pro_customer_report' %}" class="nav__link">Customer Report</a></li>
+      <li><a href="{% url 'pharmacy:edit_medicine' %}" class="nav__link">Edit Medicines</a></li>
+      <li><a href="{% url 'pharmacy:edit_invoice_medicine' %}" class="nav__link">Edit Invoice Medicine</a></li>
+      <li><a href="{% url 'pharmacy:add_company' %}" class="nav__link is-active">Add Company<span class="nav__pulse"></span></a></li>
+      <li><a href="{% url 'pharmacy:sales_report' %}" class="nav__link">Sales Report</a></li>
+    </ul>
+    <div class="sidebar__spacer"></div>
+    <a href="{% url 'pharmacy:logout' %}" class="nav__logout">Logout</a>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div><h2>Add Company</h2><p>Register a company</p></div>
+    </div>
+
+    <section class="form-card" style="margin-bottom:18px; max-width:520px;">
+      <div class="form-card__title">New Company</div>
+      {% if errors %}
+        <div class="error-list">{% for err in errors %}<p>{{ err }}</p>{% endfor %}</div>
+      {% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <div class="field" style="margin-bottom:12px;">
+          <label for="company_name">Company Name</label>
+          <input type="text" id="company_name" name="company_name" placeholder="e.g. Square Pharmaceuticals" required>
+        </div>
+        <button type="submit" class="btn-add">Add Company</button>
+      </form>
+    </section>
+
+    <section class="table-card">
+      <table>
+        <thead><tr><th>#</th><th>Company Name</th><th>Added</th></tr></thead>
+        <tbody>
+          {% for c in companies %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td style="font-weight:600;">{{ c.company_name }}</td>
+            <td>{{ c.created_at|date:"d M Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" style="text-align:center; color:var(--ink-faint); padding:30px; font-style:italic;">No companies added yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</div>
+</body>
+</html>

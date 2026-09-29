@@ -1,0 +1,655 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales History · Peoples Pharma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,600&display=swap" rel="stylesheet">
+  <!-- Flatpickr — lightweight calendar picker, no dependencies -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+  <link rel="stylesheet" href="{% static 'Style/add_medicine.css' %}">
+  <style>
+    /* ── Calendar card ── */
+    .calendar-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px 24px;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .calendar-card h3 {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-soft);
+      margin-bottom: 10px;
+    }
+    .date-input-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+    }
+    .date-input-wrap input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 12px 11px 38px;
+      font-size: 13.5px;
+      color: var(--ink);
+      background: #FBFCFC;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .date-input-wrap input:focus {
+      outline: none;
+      border-color: var(--accent-light);
+      box-shadow: 0 0 0 3px rgba(20,184,166,0.15);
+      background: #fff;
+    }
+    .date-input-wrap__icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      pointer-events: none;
+    }
+
+    /* Quick date buttons */
+    .quick-dates {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .quick-dates span {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--ink-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .quick-btn {
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      border: 1px solid var(--accent-light);
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .quick-btn:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* ── Summary KPI strip ── */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .kpi-strip-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-card);
+    }
+    .kpi-strip-card__label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink-faint);
+    }
+    .kpi-strip-card__value {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .kpi-strip-card__count {
+      font-size: 11.5px;
+      color: var(--ink-faint);
+      margin-top: 3px;
+    }
+
+    /* ── Section block ── */
+    .report-section {
+      margin-bottom: 24px;
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 18px;
+      background: var(--accent-soft);
+      border-bottom: 1px solid var(--border);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    .section-head h3 {
+      font-size: 12.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-dark);
+    }
+    .section-head .total-badge {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    tfoot td {
+      font-weight: 700;
+      color: var(--accent-dark);
+      background: var(--accent-soft);
+      border-top: 2px solid var(--border);
+      padding: 11px 16px;
+    }
+
+    /* ── Empty / no date state ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--ink-faint);
+    }
+    .empty-state svg {
+      margin-bottom: 14px;
+      opacity: 0.4;
+    }
+    .empty-state h3 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      margin-bottom: 6px;
+    }
+    .empty-state p { font-size: 13.5px; }
+    .btn-print-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--ink-soft);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s, color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .btn-print-row:hover {
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      border-color: var(--accent-light);
+    }
+
+    @media (max-width:900px) {
+      .kpi-strip { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand__text">
+        <h1>Peoples Pharma</h1>
+        <span>Admin</span>
+      </div>
+    </div>
+    <ul class="nav">
+      <li><a href="{% url 'pharmacy:dashboard' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a></li>
+      <li><a href="{% url 'pharmacy:add_medicine' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 7v8M7 11h8"/></svg>
+        Add Medicine
+      </a></li>
+      <li><a href="{% url 'pharmacy:add_salesman' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add Salesman
+      </a></li>
+      <li><a href="{% url 'pharmacy:pro_customer' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+        Pro Customers
+      </a></li>
+      <li><a href="{% url 'pharmacy:pro_customer_report' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>
+        Customer Report
+      </a></li>
+      <li><a href="{% url 'pharmacy:edit_medicine' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+        Edit Medicines
+      </a></li>
+      <li><a href="{% url 'pharmacy:edit_invoice_medicine' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+        Edit Invoice Medicine
+      </a></li>
+      <li><a href="{% url 'pharmacy:sales_report' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>
+        Sales Report
+      </a></li>
+      <li><a href="{% url 'pharmacy:sales_history' %}" class="nav__link is-active">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Sales History
+        <span class="nav__pulse"></span>
+      </a></li>
+    </ul>
+    <div class="sidebar__spacer"></div>
+    <a href="{% url 'pharmacy:logout' %}" class="nav__logout">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Logout
+    </a>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h2>Sales History</h2>
+        <p>Browse all sales for any date across any month and year</p>
+      </div>
+      {% if selected_date %}
+        <div style="background:var(--accent-soft); color:var(--accent-dark);
+                    padding:8px 18px; border-radius:999px;
+                    font-size:13.5px; font-weight:700;">
+          {{ selected_date|date:"d F Y" }}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Calendar picker card -->
+    <div class="calendar-card">
+      <div style="flex:1;">
+        <h3>Select a Date</h3>
+        <form method="get" action="{% url 'pharmacy:sales_history' %}" id="dateForm">
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <div class="date-input-wrap">
+              <span class="date-input-wrap__icon">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                  stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+              </span>
+              <input
+                type="text"
+                id="datePicker"
+                name="date"
+                value="{{ date_str }}"
+                placeholder="Pick any date..."
+                readonly
+              >
+            </div>
+            <button type="submit" class="btn-add">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+              View Sales
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Quick date shortcuts -->
+      <!--<div>
+        <h3>Quick Select</h3>
+        <div class="quick-dates">
+          <button class="quick-btn" onclick="pickDate('today')">Today</button>
+          <button class="quick-btn" onclick="pickDate('yesterday')">Yesterday</button>
+          <button class="quick-btn" onclick="pickDate('week')">This Week</button>
+        </div>
+      </div>-->
+    </div>
+
+    <!-- KPI strip — only shows when a date is selected -->
+    {% if selected_date %}
+      <div class="kpi-strip">
+        <div class="kpi-strip-card">
+          <div class="kpi-strip-card__label">Retail Sales</div>
+          <div class="kpi-strip-card__value" style="color:var(--accent);">
+            ৳{{ sale_total|floatformat:2 }}
+          </div>
+          <div class="kpi-strip-card__count">
+            {{ sales.count }} transaction{{ sales.count|pluralize }}
+          </div>
+        </div>
+        <div class="kpi-strip-card">
+          <div class="kpi-strip-card__label">Wholesale</div>
+          <div class="kpi-strip-card__value" style="color:var(--data-blue);">
+            ৳{{ wholesale_total|floatformat:2 }}
+          </div>
+          <div class="kpi-strip-card__count">
+            {{ wholesale.count }} transaction{{ wholesale.count|pluralize }}
+          </div>
+        </div>
+        <div class="kpi-strip-card">
+          <div class="kpi-strip-card__label">Pro Customer</div>
+          <div class="kpi-strip-card__value" style="color:var(--data-amber);">
+            ৳{{ pro_total|floatformat:2 }}
+          </div>
+          <div class="kpi-strip-card__count">
+            {{ pro_sales.count }} transaction{{ pro_sales.count|pluralize }}
+          </div>
+        </div>
+        <div class="kpi-strip-card">
+          <div class="kpi-strip-card__label">Grand Total</div>
+          <div class="kpi-strip-card__value" style="color:var(--accent);">
+            ৳{{ grand_total|floatformat:2 }}
+          </div>
+          <div class="kpi-strip-card__count">
+            All channels combined
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RETAIL SALES TABLE ── -->
+      <div class="report-section">
+        <div class="table-card">
+          <div class="section-head">
+            <h3>Retail Sales</h3>
+            <span class="total-badge">৳{{ sale_total|floatformat:2 }}</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Time</th>
+                <th>Medicine</th>
+                <th>Type</th>
+                <th>Salesman</th>
+                <th class="num">Qty</th>
+                <th class="num">Price/Unit</th>
+                <th class="num">Subtotal</th>
+                <th class="num">Discount</th>
+                <th class="num">Final Price</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sale in sales %}
+              <tr>
+                <td style="color:var(--ink-faint); font-size:12px;">{{ forloop.counter }}</td>
+                <td style="color:var(--ink-soft);">{{ sale.sold_at|time:"h:i A" }}</td>
+                <td style="font-weight:600;">{{ sale.medicine.name }}</td>
+                <td><span class="pill">{{ sale.medicine.product_type }}</span></td>
+                <td>{{ sale.salesman.get_full_name|default:sale.salesman.username }}</td>
+                <td class="num">{{ sale.quantity_sold }}</td>
+                <td class="num">৳{{ sale.price_per_unit }}</td>
+                <td class="num">৳{{ sale.item_total }}</td>
+                <td class="num" style="color:var(--data-coral);">
+                  {% if sale.discount > 0 %}-{% endif %}৳{{ sale.discount }}
+                </td>
+                <td class="num" style="font-weight:700; color:var(--accent);">
+                  ৳{{ sale.final_price }}
+                </td>
+                <td>
+                  <!-- ← add this print button -->
+                  <a href="{% url 'pharmacy:print_sale_receipt' 'retail' sale.pk %}"
+                    class="btn-print-row">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none"
+                      stroke="currentColor" stroke-width="2.5"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M6 9V2h12v7"/>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                      <path d="M6 14h12v8H6z"/>
+                    </svg>
+                    Print
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="10" style="text-align:center; color:var(--ink-faint); padding:30px;">
+                  No retail sales on this date.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            {% if sales %}
+            <tfoot>
+              <tr>
+                <td colspan="9" style="text-align:right;">Total</td>
+                <td class="num">৳{{ sale_total|floatformat:2 }}</td>
+              </tr>
+            </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+
+      <!-- ── WHOLESALE TABLE ── -->
+      <div class="report-section">
+        <div class="table-card">
+          <div class="section-head" style="background:#EAF1FE;">
+            <h3 style="color:var(--data-blue);">Wholesale</h3>
+            <span class="total-badge" style="color:var(--data-blue);">
+              ৳{{ wholesale_total|floatformat:2 }}
+            </span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Time</th>
+                <th>Buyer</th>
+                <th>Medicine</th>
+                <th>Salesman</th>
+                <th class="num">Qty</th>
+                <th class="num">Price/Unit</th>
+                <th class="num">Subtotal</th>
+                <th class="num">Discount</th>
+                <th class="num">Final Price</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for w in wholesale %}
+              <tr>
+                <td style="color:var(--ink-faint); font-size:12px;">{{ forloop.counter }}</td>
+                <td style="color:var(--ink-soft);">{{ w.sold_at|time:"h:i A" }}</td>
+                <td style="font-weight:600;">{{ w.buyer_name }}</td>
+                <td>{{ w.medicine.name }}</td>
+                <td>{{ w.salesman.get_full_name|default:w.salesman.username }}</td>
+                <td class="num">{{ w.quantity_sold }}</td>
+                <td class="num">৳{{ w.price_per_unit }}</td>
+                <td class="num">৳{{ w.item_total }}</td>
+                <td class="num" style="color:var(--data-coral);">
+                  {% if w.discount > 0 %}-{% endif %}৳{{ w.discount }}
+                </td>
+                <td class="num" style="font-weight:700; color:var(--data-blue);">
+                  ৳{{ w.final_price }}
+                </td>
+                <td>
+                  <a href="{% url 'pharmacy:print_sale_receipt' 'wholesale' w.pk %}"
+                    class="btn-print-row">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none"
+                      stroke="currentColor" stroke-width="2.5"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M6 9V2h12v7"/>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                      <path d="M6 14h12v8H6z"/>
+                    </svg>
+                    Print
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="10" style="text-align:center; color:var(--ink-faint); padding:30px;">
+                  No wholesale orders on this date.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            {% if wholesale %}
+            <tfoot>
+              <tr>
+                <td colspan="9" style="text-align:right;">Total</td>
+                <td class="num">৳{{ wholesale_total|floatformat:2 }}</td>
+              </tr>
+            </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+
+      <!-- ── PRO CUSTOMER TABLE ── -->
+      <div class="report-section">
+        <div class="table-card">
+          <div class="section-head" style="background:#FDF2E2;">
+            <h3 style="color:#B67D1A;">Pro Customer Sales</h3>
+            <span class="total-badge" style="color:var(--data-amber);">
+              ৳{{ pro_total|floatformat:2 }}
+            </span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Time</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Medicine</th>
+                <th>Salesman</th>
+                <th class="num">Qty</th>
+                <th class="num">Price/Unit</th>
+                <th class="num">Discount</th>
+                <th class="num">Final Price</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ps in pro_sales %}
+              <tr>
+                <td style="color:var(--ink-faint); font-size:12px;">{{ forloop.counter }}</td>
+                <td style="color:var(--ink-soft);">{{ ps.sold_at|time:"h:i A" }}</td>
+                <td style="font-weight:600;">{{ ps.customer.name }}</td>
+                <td style="color:var(--ink-soft);">{{ ps.customer.phone_number }}</td>
+                <td>{{ ps.medicine.name }}</td>
+                <td>{{ ps.salesman.get_full_name|default:ps.salesman.username }}</td>
+                <td class="num">{{ ps.quantity_sold }}</td>
+                <td class="num">৳{{ ps.price_per_unit }}</td>
+                <td class="num" style="color:var(--data-coral);">
+                  {% if ps.discount > 0 %}-{% endif %}৳{{ ps.discount }}
+                </td>
+                <td class="num" style="font-weight:700; color:var(--data-amber);">
+                  ৳{{ ps.final_price }}
+                </td>
+                <td>
+                  <a href="{% url 'pharmacy:print_sale_receipt' 'pro' ps.pk %}"
+                    class="btn-print-row">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none"
+                      stroke="currentColor" stroke-width="2.5"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M6 9V2h12v7"/>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                      <path d="M6 14h12v8H6z"/>
+                    </svg>
+                    Print
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="10" style="text-align:center; color:var(--ink-faint); padding:30px;">
+                  No pro customer sales on this date.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            {% if pro_sales %}
+            <tfoot>
+              <tr>
+                <td colspan="9" style="text-align:right;">Total</td>
+                <td class="num">৳{{ pro_total|floatformat:2 }}</td>
+              </tr>
+            </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+
+    {% else %}
+      <!-- No date selected yet -->
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" width="56" height="56" fill="none"
+          stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        <h3>Select a date to view sales</h3>
+        <p>Pick any date from the calendar above to see retail, wholesale and pro customer sales.</p>
+      </div>
+    {% endif %}
+
+  </main>
+</div>
+
+<!-- Flatpickr calendar library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+<script>
+  // Initialize the calendar picker
+  const picker = flatpickr('#datePicker', {
+    dateFormat:    'Y-m-d',       // format Django receives
+    altInput:      true,           // show a human-readable format
+    altFormat:     'd F Y',        // e.g. 13 September 2026
+    maxDate:       'today',        // cannot pick future dates
+    disableMobile: false,
+    onChange: function(selectedDates, dateStr) {
+      // Auto-submit the form when a date is picked
+      document.getElementById('dateForm').submit();
+    }
+  });
+
+  // Quick date helper buttons
+  function pickDate(which) {
+    const today = new Date();
+    if (which === 'today') {
+      picker.setDate(today);
+    } else if (which === 'yesterday') {
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      picker.setDate(yesterday);
+    } else if (which === 'week') {
+      // Go to last Saturday
+      const sat = new Date(today);
+      sat.setDate(today.getDate() - ((today.getDay() + 1) % 7));
+      picker.setDate(sat);
+    }
+    // onChange fires automatically after setDate
+  }
+</script>
+
+</body>
+</html>

@@ -90,6 +90,26 @@
       color: var(--ink-soft);
       white-space: nowrap;
     }
+    /* Filter dropdowns */
+    .report-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .report-select {
+      padding: 7px 12px;
+      border-radius: var(--radius-sm, 8px);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+    .report-select:focus {
+      border-color: var(--accent);
+    }
 
     @media (max-width: 900px) {
       .kpi-strip { grid-template-columns: 1fr 1fr; }
@@ -133,9 +153,17 @@
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
         Edit Medicines
       </a></li>
+      <li><a href="{% url 'pharmacy:edit_invoice_medicine' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+        Edit Invoice Medicine
+      </a></li>
       <li><a href="{% url 'pharmacy:sales_report' %}" class="nav__link">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>
         Sales Report
+      </a></li>
+      <li><a href="{% url 'pharmacy:sales_history' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Sales History
       </a></li>
     </ul>
     <div class="sidebar__spacer"></div>
@@ -151,12 +179,25 @@
     <div class="topbar">
       <div>
         <h2>Pro Customer Report</h2>
-        <p>Yearly sales summary for all registered pro customers</p>
+        <p>Monthly sales summary for all registered pro customers</p>
       </div>
-      <div style="background:var(--accent-soft); color:var(--accent-dark);
-                  padding:8px 18px; border-radius:999px;
-                  font-size:14px; font-weight:700;">
-        Year {{ current_year }}
+      <div class="report-filter-bar">
+        <form method="get" id="customerMonthFilter" style="display: flex; gap: 10px;">
+          <select name="month" class="report-select" onchange="document.getElementById('customerMonthFilter').submit();">
+            {% for m in month_choices %}
+              <option value="{{ m.num }}" {% if m.num == selected_month %}selected{% endif %}>
+                {{ m.name }}
+              </option>
+            {% endfor %}
+          </select>
+          <select name="year" class="report-select" onchange="document.getElementById('customerMonthFilter').submit();">
+            {% for y in year_choices %}
+              <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>
+                {{ y }}
+              </option>
+            {% endfor %}
+          </select>
+        </form>
       </div>
     </div>
 
@@ -170,21 +211,21 @@
         </div>
       </div>
       <div class="kpi-strip-card">
-        <div class="kpi-strip-card__label">Active This Year</div>
+        <div class="kpi-strip-card__label">Active This Month</div>
         <div class="kpi-strip-card__value"
           style="color:var(--accent);">
           {{ active_customers }}
         </div>
       </div>
       <div class="kpi-strip-card">
-        <div class="kpi-strip-card__label">Inactive This Year</div>
+        <div class="kpi-strip-card__label">Inactive This Month</div>
         <div class="kpi-strip-card__value"
           style="color:var(--ink-faint);">
           {{ inactive_customers }}
         </div>
       </div>
       <div class="kpi-strip-card">
-        <div class="kpi-strip-card__label">Total Revenue {{ current_year }}</div>
+        <div class="kpi-strip-card__label">Total Revenue ({{ month_name }} {{ selected_year }})</div>
         <div class="kpi-strip-card__value"
           style="color:var(--accent);">
           ৳{{ grand_total|floatformat:2 }}
@@ -199,7 +240,7 @@
         id="customerFilter"
         placeholder="Search by name or phone number..."
       >
-      <span class="year-label">Showing {{ current_year }} data</span>
+      <span class="year-label">Showing {{ month_name }} {{ selected_year }} data</span>
     </div>
 
     <!-- Main table -->
@@ -234,9 +275,13 @@
             <td>{{ c.phone_number }}</td>
 
             <td>
-              <span class="tier-badge"style="background:{{ c.tier.color }};">
-                {{ c.tier.label }}
-              </span>
+              {% if c.tier %}
+                <span class="tier-badge"style="background:{{ c.tier.color }};">
+                  {{ c.tier.label }}
+                </span>
+              {% else %}
+                <span class="tier-badge" style="background:var(--ink-faint);">Pro</span>
+              {% endif %}
             </td>
 
             <td class="num">{{ c.order_count }}</td>
@@ -258,7 +303,7 @@
                 {% widthratio c.net_sale grand_total 100 as pct %}
                 <span style="font-size:12px;">{{ pct }}%</span>
                 <div class="progress-wrap">
-                  <div class="progress-fill"style="width:{{ pct }}%;background:{{ c.tier.color }};">
+                  <div class="progress-fill" style="width:{{ pct }}%; background:{{ c.tier.color|default:'var(--accent)' }};">
                   </div>
                 </div>
               {% else %}

@@ -40,12 +40,8 @@
       </a></li>
       <li><a href="{% url 'pharmacy:update_medicine' %}" class="nav__link is-active">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><!-- Medical Cross --><path d="M12 8v8M8 12h8"/><!-- Refresh Loop --><path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/></svg>
-        Update Medicine
+        Buy Medicine
         <span class="nav__pulse"></span>
-      </a></li>
-      <li><a href="{% url 'pharmacy:s_add_medicine' %}" class="nav__link">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 7v8M7 11h8"/></svg>
-        Add Medicine
       </a></li>
       <li><a href="{% url 'pharmacy:medicine_list' %}" class="nav__link">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/></svg>
@@ -66,25 +62,65 @@
 
     <div class="topbar">
       <div>
-        <h2>Upadate Medicine</h2>
-        <p>Update new stock and keep your inventory up to date</p>
+        <h2>Buy Medicine</h2>
+        <p>Register new stock and keep your inventory up to date</p>
       </div>
-      <div class="company-select">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
-        <select id="companyName">
-          <option value="">Company name</option>
-          <option>Square Pharmaceuticals</option>
-          <option>Beximco Pharma</option>
-          <option>Incepta Pharmaceuticals</option>
-          <option>ACI Limited</option>
-          <option>Renata Limited</option>
-        </select>
+
+      <!-- Company + Invoice grouped together on the right -->
+      <div style="display:flex; flex-direction:column; gap:10px; align-items:flex-end;">
+
+        <!-- Company dropdown -->
+        <div class="company-select" style="display:flex; align-items:center; gap:6px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            width="15" height="15">
+            <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>
+          </svg>
+          <select id="companyName" name="company_name">
+            <option value="">Loading companies...</option>
+          </select>
+          <button type="button" id="addCompanyBtn" title="Add new company"
+            style="border:1px solid var(--border); background:var(--surface);
+                  border-radius:6px; width:30px; height:30px; font-weight:700;
+                  color:var(--accent); cursor:pointer;">+</button>
+        </div>
+
+        <!-- Inline "new company" row — hidden until + is clicked -->
+        <div id="newCompanyRow" style="display:none; gap:6px; margin-top:4px;">
+          <input type="text" id="newCompanyInput" placeholder="New company name"
+            style="border:1px solid var(--border); border-radius:var(--radius-sm);
+                  padding:6px 10px; font-size:13px; flex:1;">
+          <button type="button" id="saveCompanyBtn" class="btn-add" style="padding:6px 12px;">Save</button>
+          <button type="button" id="cancelCompanyBtn" class="btn-cancel" style="padding:6px 12px;">Cancel</button>
+        </div>
+
+        <!-- Invoice number — sits directly below company dropdown -->
+        <div style="display:flex; align-items:center; gap:8px;
+                    background:var(--surface); border:1px solid var(--border);
+                    border-radius:var(--radius-sm); padding:9px 14px;
+                    font-size:13px; font-weight:600; color:var(--ink-soft);
+                    box-shadow:var(--shadow-card); min-width:220px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            width="15" height="15">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+          </svg>
+          <input
+            type="text"
+            id="invoiceNumber"
+            placeholder="Invoice number"
+            style="border:none; background:transparent; font-size:13px;
+                  font-weight:600; color:var(--ink); width:100%;
+                  outline:none;">
+        </div>
+
       </div>
     </div>
 
     <!-- Entry form -->
     <section class="form-card">
-      <div class="form-card__title">New update entry</div>
+      <div class="form-card__title">New stock entry</div>
       <form id="medicineForm">
         <div class="form-row">
           <div class="field">
@@ -116,6 +152,11 @@
             <label for="price">Price / unit</label>
             <input type="number" id="price" placeholder="2.00" min="0" step="0.01" required>
           </div>
+          <!-- NEW DISCOUNT FIELD -->
+          <div class="field">
+            <label for="discount">Discount (৳)</label>
+            <input type="number" id="discount" placeholder="0.00" min="0" step="0.01" value="0.00">
+          </div>
           <button type="submit" class="btn-add">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
             Add
@@ -138,17 +179,6 @@
           </tr>
         </thead>
         <tbody id="medicineTableBody">
-          <!--<tr>
-            <td>Napa</td>
-            <td><span class="pill">Tablet</span></td>
-            <td class="num">50</td>
-            <td class="num">৳2.00</td>
-            <td>
-              <button class="row-delete" aria-label="Remove row">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
-              </button>
-            </td>
-          </tr> -->
         </tbody>
       </table>
     </section>
@@ -168,5 +198,56 @@
 
 <script src="{% static 'js/medicine-autocomplete.js' %}"></script>
 <script src="{% static 'js/update-medicine.js' %}"></script>
+<script>
+async function loadCompanies(selectValue = null) {
+    const res = await fetch('/get-companies/');
+    const data = await res.json();
+    const select = document.getElementById('companyName');
+    select.innerHTML = '<option value="">Company name</option>';
+    data.companies.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name;
+        opt.textContent = c.name;
+        select.appendChild(opt);
+    });
+    if (selectValue) select.value = selectValue;
+}
+
+document.addEventListener('DOMContentLoaded', () => loadCompanies());
+
+document.getElementById('addCompanyBtn').addEventListener('click', () => {
+    const row = document.getElementById('newCompanyRow');
+    row.style.display = row.style.display === 'flex' ? 'none' : 'flex';
+    document.getElementById('newCompanyInput').focus();
+});
+
+document.getElementById('cancelCompanyBtn').addEventListener('click', () => {
+    document.getElementById('newCompanyRow').style.display = 'none';
+    document.getElementById('newCompanyInput').value = '';
+});
+
+document.getElementById('saveCompanyBtn').addEventListener('click', async () => {
+    const name = document.getElementById('newCompanyInput').value.trim();
+    if (!name) return;
+
+    const res = await fetch('/add-company-ajax/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: `company_name=${encodeURIComponent(name)}`,
+    });
+    const data = await res.json();
+
+    if (data.success) {
+        await loadCompanies(data.name);
+        document.getElementById('newCompanyRow').style.display = 'none';
+        document.getElementById('newCompanyInput').value = '';
+    } else {
+        alert(data.error || 'Could not add company.');
+    }
+});
+</script>
 </body>
 </html>

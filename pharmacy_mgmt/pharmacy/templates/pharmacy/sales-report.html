@@ -97,6 +97,26 @@
       border-top: 2px solid var(--border);
       padding: 12px 18px;
     }
+    .report-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .report-select {
+      padding: 8px 14px;
+      border-radius: var(--radius-sm, 8px);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+    .report-select:focus {
+      border-color: var(--accent);
+    }
   </style>
 </head>
 <body>
@@ -135,10 +155,18 @@
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
         Edit Medicines
       </a></li>
+      <li><a href="{% url 'pharmacy:edit_invoice_medicine' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2l2.6 12.3a2 2 0 0 0 2 1.7h8.8a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+        Edit Invoice Medicine
+      </a></li>
       <li><a href="{% url 'pharmacy:sales_report' %}" class="nav__link is-active">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V4M16 19v-7M22 19H2"/></svg>
         Sales Report
         <span class="nav__pulse"></span>
+      </a></li>
+      <li><a href="{% url 'pharmacy:sales_history' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Sales History
       </a></li>
     </ul>
     <div class="sidebar__spacer"></div>
@@ -362,22 +390,199 @@
          WEEKLY / MONTHLY / YEARLY TABS
          (shared table structure)
     ═══════════════════════════════ -->
-    {% if tab == 'weekly' or tab == 'monthly' or tab == 'yearly' %}
+    {% if tab == 'weekly' %}
+      {% with totals=weekly_totals %}
+        {% include "pharmacy/report_summary_strip.html" %}
+      {% endwith %}
+      <div class="report-section">
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Day</th>
+                <th class="num">Sale Qty</th>
+                <th class="num">Sale Revenue</th>
+                <th class="num">Wholesale Qty</th>
+                <th class="num">Wholesale Revenue</th>
+                <th class="num">Purchase Qty</th>
+                <th class="num">Purchase Cost</th>
+                <th class="num">Net</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in weekly_data %}
+              <tr class="{% if row.is_today %}is-current{% endif %}">
+                <td style="font-weight:600;">
+                  {{ row.label }}
+                  <span style="font-size:11px; color:var(--ink-faint);
+                               margin-left:6px;">{{ row.date }}</span>
+                </td>
+                <td class="num">{{ row.sale_qty }}</td>
+                <td class="num" style="color:var(--accent);">৳{{ row.sale_amount|floatformat:2 }}</td>
+                <td class="num">{{ row.wholesale_qty }}</td>
+                <td class="num" style="color:var(--data-blue);">৳{{ row.wholesale_amount|floatformat:2 }}</td>
+                <td class="num">{{ row.purchase_qty }}</td>
+                <td class="num" style="color:var(--data-coral);">৳{{ row.purchase_amount|floatformat:2 }}</td>
+                <td class="num" style="font-weight:700;">৳{{ row.net|floatformat:2 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            {% if weekly_totals %}
+            <tfoot>
+              <tr>
+                <td style="font-weight:700;">Total</td>
+                <td class="num" style="font-weight:700;">{{ weekly_totals.sale_qty }}</td>
+                <td class="num" style="font-weight:700; color:var(--accent);">৳{{ weekly_totals.sale_amount|floatformat:2 }}</td>
+                <td class="num" style="font-weight:700;">{{ weekly_totals.wholesale_qty }}</td>
+                <td class="num" style="font-weight:700; color:var(--data-blue);">৳{{ weekly_totals.wholesale_amount|floatformat:2 }}</td>
+                <td class="num" style="font-weight:700;">{{ weekly_totals.purchase_qty }}</td>
+                <td class="num" style="font-weight:700; color:var(--data-coral);">৳{{ weekly_totals.purchase_amount|floatformat:2 }}</td>
+                <td class="num" style="font-weight:700;">৳{{ weekly_totals.net|floatformat:2 }}</td>
+              </tr>
+            </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+    {% endif %}
 
-      {% if tab == 'weekly' %}
-        {% with data=weekly_data period_label="Day" %}
-          {% include "pharmacy/report_table.html" %}
-        {% endwith %}
-      {% elif tab == 'monthly' %}
-        {% with data=monthly_data period_label="Date" %}
-          {% include "pharmacy/report_table.html" %}
-        {% endwith %}
-      {% elif tab == 'yearly' %}
-        {% with data=yearly_data period_label="Month" %}
-          {% include "pharmacy/report_table.html" %}
-        {% endwith %}
-      {% endif %}
+    {% if tab == 'monthly' %}
+      {% with totals=monthly_totals %}
+        {% include "pharmacy/report_summary_strip.html" %}
+      {% endwith %}
+      <!-- Dropdown below KPI strip -->
+      <div class="report-filter-bar">
+        <form method="get" id="monthlyFilterForm" style="display:inline-flex; gap:10px;">
+          <input type="hidden" name="tab" value="monthly">
+          <select name="month" class="report-select" onchange="document.getElementById('monthlyFilterForm').submit();">
+            {% for m in month_choices %}
+              <option value="{{ m.num }}" {% if m.num == selected_month %}selected{% endif %}>
+                {{ m.name }}
+              </option>
+            {% endfor %}
+          </select>
+          <select name="year" class="report-select" onchange="document.getElementById('monthlyFilterForm').submit();">
+            {% for y in year_choices %}
+              <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>
+                {{ y }}
+              </option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
 
+      <div class="report-section">
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th class="num">Sale Qty</th>
+                <th class="num">Sale Revenue</th>
+                <th class="num">Wholesale Qty</th>
+                <th class="num">Wholesale Revenue</th>
+                <th class="num">Purchase Qty</th>
+                <th class="num">Purchase Cost</th>
+                <th class="num">Net</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in monthly_data %}
+              <tr class="{% if row.is_today %}is-current{% endif %}">
+                <td style="font-weight:600;">{{ row.label }}</td>
+                <td class="num">{{ row.sale_qty }}</td>
+                <td class="num" style="color:var(--accent);">৳{{ row.sale_amount|floatformat:2 }}</td>
+                <td class="num">{{ row.wholesale_qty }}</td>
+                <td class="num" style="color:var(--data-blue);">৳{{ row.wholesale_amount|floatformat:2 }}</td>
+                <td class="num">{{ row.purchase_qty }}</td>
+                <td class="num" style="color:var(--data-coral);">৳{{ row.purchase_amount|floatformat:2 }}</td>
+                <td class="num" style="font-weight:700;">৳{{ row.net|floatformat:2 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            {% if monthly_totals %}
+            <tfoot>
+              <tr>
+                <td style="font-weight:700;">Total</td>
+                <td class="num" style="font-weight:700;">{{ monthly_totals.sale_qty }}</td>
+                <td class="num" style="font-weight:700; color:var(--accent);">৳{{ monthly_totals.sale_amount|floatformat:2 }}</td>
+                <td class="num" style="font-weight:700;">{{ monthly_totals.wholesale_qty }}</td>
+                <td class="num" style="font-weight:700; color:var(--data-blue);">৳{{ monthly_totals.wholesale_amount|floatformat:2 }}</td>
+                <td class="num" style="font-weight:700;">{{ monthly_totals.purchase_qty }}</td>
+                <td class="num" style="font-weight:700; color:var(--data-coral);">৳{{ monthly_totals.purchase_amount|floatformat:2 }}</td>
+                <td class="num" style="font-weight:700;">৳{{ monthly_totals.net|floatformat:2 }}</td>
+              </tr>
+            </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if tab == 'yearly' %}
+      {% with totals=yearly_totals %}
+        {% include "pharmacy/report_summary_strip.html" %}
+      {% endwith %}
+      <!-- Dropdown below KPI strip -->
+      <div class="report-filter-bar">
+        <form method="get" id="yearlyFilterForm" style="display:inline-flex; gap:10px;">
+          <input type="hidden" name="tab" value="yearly">
+          <select name="year" class="report-select" onchange="document.getElementById('yearlyFilterForm').submit();">
+            {% for y in year_choices %}
+              <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>
+                {{ y }}
+              </option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+      
+      <div class="report-section">
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th class="num">Sale Qty</th>
+                <th class="num">Sale Revenue</th>
+                <th class="num">Wholesale Qty</th>
+                <th class="num">Wholesale Revenue</th>
+                <th class="num">Purchase Qty</th>
+                <th class="num">Purchase Cost</th>
+                <th class="num">Net</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in yearly_data %}
+              <tr class="{% if row.is_current %}is-current{% endif %}">
+                <td style="font-weight:600;">{{ row.label }}</td>
+                <td class="num">{{ row.sale_qty }}</td>
+                <td class="num" style="color:var(--accent);">৳{{ row.sale_amount|floatformat:2 }}</td>
+                <td class="num">{{ row.wholesale_qty }}</td>
+                <td class="num" style="color:var(--data-blue);">৳{{ row.wholesale_amount|floatformat:2 }}</td>
+                <td class="num">{{ row.purchase_qty }}</td>
+                <td class="num" style="color:var(--data-coral);">৳{{ row.purchase_amount|floatformat:2 }}</td>
+                <td class="num" style="font-weight:700;">৳{{ row.net|floatformat:2 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            {% if yearly_totals %}
+            <tfoot>
+              <tr>
+                <td style="font-weight:700;">Total</td>
+                <td class="num" style="font-weight:700;">{{ yearly_totals.sale_qty }}</td>
+                <td class="num" style="font-weight:700; color:var(--accent);">৳{{ yearly_totals.sale_amount|floatformat:2 }}</td>
+                <td class="num" style="font-weight:700;">{{ yearly_totals.wholesale_qty }}</td>
+                <td class="num" style="font-weight:700; color:var(--data-blue);">৳{{ yearly_totals.wholesale_amount|floatformat:2 }}</td>
+                <td class="num" style="font-weight:700;">{{ yearly_totals.purchase_qty }}</td>
+                <td class="num" style="font-weight:700; color:var(--data-coral);">৳{{ yearly_totals.purchase_amount|floatformat:2 }}</td>
+                <td class="num" style="font-weight:700;">৳{{ yearly_totals.net|floatformat:2 }}</td>
+              </tr>
+            </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
     {% endif %}
 
   </main>

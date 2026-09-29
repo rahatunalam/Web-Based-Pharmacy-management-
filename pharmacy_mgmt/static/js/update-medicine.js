@@ -44,14 +44,17 @@ form.addEventListener('submit', e => {
   e.preventDefault();
 
   const name = document.getElementById('productName').value.trim();
+  const invoice = document.getElementById('invoiceNumber').value.trim();  // ← add
   const company  = document.getElementById('companyName').value;
   const type = document.getElementById('productType').value;
   const quantity = parseFloat(document.getElementById('quantity').value);
   const price = parseFloat(document.getElementById('price').value);
+  const discount = parseFloat(document.getElementById('discount').value) || 0;
 
   if (!name || !type || !quantity || !price) return;
 
   const total_price = quantity * price;
+  const dis_price = Math.max(0, (quantity * price) - discount);
 
   // NEW — capture current index before incrementing
   const index = rowCount;
@@ -63,6 +66,7 @@ form.addEventListener('submit', e => {
     <td class="num">${quantity}</td>
     <td class="num">${currency(price)}</td>
     <td class="num">${currency(total_price)}</td>
+    <td class='num'>${currency(dis_price)}</td>
     <td>
       <button type="button" class="row-delete" aria-label="Remove row">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
@@ -77,11 +81,13 @@ form.addEventListener('submit', e => {
   const hiddenDiv = document.getElementById('hiddenInputs');
   hiddenDiv.innerHTML += `
     <input type="hidden" name="medicine_${index}_name"     value="${name}"     data-row="${index}">
+    <input type="hidden" name="medicine_${index}_invoice"  value="${invoice}"  data-row="${index}">
     <input type="hidden" name="medicine_${index}_company"  value="${company}"  data-row="${index}">
     <input type="hidden" name="medicine_${index}_type"     value="${type}"     data-row="${index}">
     <input type="hidden" name="medicine_${index}_quantity" value="${quantity}" data-row="${index}">
     <input type="hidden" name="medicine_${index}_price"    value="${price}"    data-row="${index}">
     <input type="hidden" name="medicine_${index}_total_price"    value="${total_price}"    data-row="${index}">
+    <input type="hidden" name="medicine_${index}_total_dis_price" value="${dis_price}"    data-row="${index}">
   `;
 
   // NEW — increment the counter and update total_count
@@ -89,5 +95,7 @@ form.addEventListener('submit', e => {
   updateTotalCount();
 
   form.reset();
+  const discountInput = document.getElementById('discount');
+  if (discountInput) discountInput.value = '0.00';
   document.getElementById('productName').focus();
 });

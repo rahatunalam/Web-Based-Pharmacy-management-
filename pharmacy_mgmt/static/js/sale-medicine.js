@@ -71,17 +71,12 @@ function attachDeleteHandler(button, index, itemTotal) {
     });
 }
 
-function submitSale(shouldPrint) {
-    const realRows = tableBody.querySelectorAll('tr[data-index]').length;
-    if (realRows === 0) {
-        alert('Please add at least one medicine before confirming.');
-        return;
-    }
-    setHidden('print', shouldPrint ? '1' : '0');
-    document.getElementById('dbForm').submit();
-}
-
 discountInput.addEventListener('input', updateSummary);
+
+// Store the autocomplete instance so we can read the type
+const medicineSearch = initMedicineSearch((medicine) => {
+    document.getElementById('saleQuantity').focus();
+});
 
 form.addEventListener('submit', async e => {
     e.preventDefault();
@@ -91,8 +86,11 @@ form.addEventListener('submit', async e => {
 
     if (!name || !quantity) return;
 
+    // ✅ read the type that was selected from the dropdown
+    const selectedType = medicineSearch ? medicineSearch.getSelectedType() : '';
+
     const response = await fetch(
-        `/get-medicine-price/?name=${encodeURIComponent(name)}`
+        `/get-medicine-price/?name=${encodeURIComponent(name)}&type=${encodeURIComponent(selectedType)}`
     );
     const data = await response.json();
 
@@ -103,7 +101,7 @@ form.addEventListener('submit', async e => {
 
     if (quantity > data.stock) {
         alert(
-            `Not enough stock for "${name}". ` +
+            `Not enough stock for "${name}" (${data.product_type}). ` +
             `Available: ${data.stock}, Requested: ${quantity}.`
         );
         return;
@@ -113,16 +111,12 @@ form.addEventListener('submit', async e => {
     const itemTotal = price * quantity;
     const index     = rowCount;
 
-    // Hide the empty placeholder
-    if (emptyRow) emptyRow.style.display = 'none';
+    emptyRow.style.display = 'none';
 
-    // Add row with data-index so updateTotalCount can find it
     const row = document.createElement('tr');
-    row.dataset.index = index;   // ✅ required for tr[data-index] selector
+    row.dataset.index = index;
     row.innerHTML = `
-        <td style="color:var(--ink-faint); font-size:12px;">
-            ${rowCount + 1}
-        </td>
+        <td style="color:var(--ink-faint); font-size:12px;">${rowCount + 1}</td>
         <td style="font-weight:600;">${name}</td>
         <td><span class="pill">${data.product_type}</span></td>
         <td class="num">${quantity}</td>
@@ -142,8 +136,14 @@ form.addEventListener('submit', async e => {
     tableBody.appendChild(row);
     attachDeleteHandler(row.querySelector('.row-delete'), index, itemTotal);
 
-    // Inject hidden inputs for this row
-    const fields = { name, quantity, price, total: itemTotal };
+    // ✅ also store the type in hidden inputs so the view can use it
+    const fields = {
+        name,
+        type: data.product_type,   // ← add type
+        quantity,
+        price,
+        total: itemTotal
+    };
     for (const [key, val] of Object.entries(fields)) {
         const input       = document.createElement('input');
         input.type        = 'hidden';
@@ -157,6 +157,20 @@ form.addEventListener('submit', async e => {
     rowCount++;
     updateTotalCount();
     updateSummary();
+
+    // ✅ reset the selected type after adding
+    if (medicineSearch) medicineSearch.reset();
+
     form.reset();
     document.getElementById('productName').focus();
 });
+
+function submitSale(shouldPrint) {
+    const realRows = tableBody.querySelectorAll('tr[data-index]').length;
+    if (realRows === 0) {
+        alert('Please add at least one medicine before confirming.');
+        return;
+    }
+    setHidden('print', shouldPrint ? '1' : '0');
+    document.getElementById('dbForm').submit();
+}

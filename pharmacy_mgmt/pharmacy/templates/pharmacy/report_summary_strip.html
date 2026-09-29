@@ -1,0 +1,27 @@
+<div class="summary-strip">
+  <div class="strip-card">
+    <div class="strip-card__label">Total Sales</div>
+    <div class="strip-card__value teal">
+      ৳{{ totals.sale_amount|floatformat:2 }}
+    </div>
+  </div>
+  <div class="strip-card">
+    <div class="strip-card__label">Total Wholesale</div>
+    <div class="strip-card__value blue" style="color:var(--data-blue);">
+      ৳{{ totals.wholesale_amount|floatformat:2 }}
+    </div>
+  </div>
+  <div class="strip-card">
+    <div class="strip-card__label">Total Purchases</div>
+    <div class="strip-card__value coral" style="color:var(--data-coral);">
+      ৳{{ totals.purchase_amount|floatformat:2 }}
+    </div>
+  </div>
+  <div class="strip-card">
+    <div class="strip-card__label">Net Revenue</div>
+    <div class="strip-card__value"
+      style="color:{% if totals.net >= 0 %}var(--accent){% else %}var(--data-coral){% endif %}">
+      ৳{{ totals.net|floatformat:2 }}
+    </div>
+   </div>
+</div>
