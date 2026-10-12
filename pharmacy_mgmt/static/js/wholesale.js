@@ -4,59 +4,52 @@ const hiddenInputs  = document.getElementById('hiddenInputs');
 const discountInput = document.getElementById('discount');
 const emptyRow      = document.getElementById('emptyRow');
 
-// Autocomplete initialization
-if (typeof initMedicineSearch === 'function') {
-    initMedicineSearch((medicine) => {
-        const customPriceInput = document.getElementById('customPrice');
-        if (customPriceInput) {
-            customPriceInput.placeholder = `Default: ৳${medicine.price.toFixed(2)}`;
-        }
-        document.getElementById('saleQuantity').focus();
-    });
-}
-
-let rowCount = 0;
+let rowCount        = 0;
 let runningSubtotal = 0;
-let runningDiscount = 0;
+let runningDiscount = 0;   // tracks total discount in taka across all rows
 
 const currency = n => '৳' + parseFloat(n).toLocaleString(
     undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }
 );
 
 function updateSummary() {
-    const finalPrice = Math.max(0, runningSubtotal - discount);
-    const effectivePercent = runningSubtotal > 0 
-        ? ((runningDiscount / runningSubtotal) * 100).toFixed(1) 
+    // ✅ use runningDiscount — not 'discount' which was never defined
+    const finalPrice = Math.max(0, runningSubtotal - runningDiscount);
+    const effectivePercent = runningSubtotal > 0
+        ? ((runningDiscount / runningSubtotal) * 100).toFixed(1)
         : 0;
 
     document.getElementById('displaySubtotal').textContent = currency(runningSubtotal);
-    document.getElementById('displayDiscount').textContent = `\({currency(runningDiscount)} (\){effectivePercent}%)`;
+    // ✅ fixed template literal — use ${} not \( \)
+    document.getElementById('displayDiscount').textContent =
+        `${currency(runningDiscount)} (${effectivePercent}%)`;
     document.getElementById('displayFinal').textContent    = currency(finalPrice);
 
     setHidden('subtotal',    runningSubtotal.toFixed(2));
-    setHidden('discount',    discount.toFixed(2));
-    setHidden('final_price', finalPrice);
+    // ✅ use runningDiscount
+    setHidden('discount',    runningDiscount.toFixed(2));
+    setHidden('final_price', finalPrice.toFixed(2));
 }
 
 function setHidden(name, value) {
     let input = document.getElementById('hidden_' + name);
     if (!input) {
-        input = document.createElement('input');
-        input.type = 'hidden';
-        input.id   = 'hidden_' + name;
-        input.name = name;
+        input        = document.createElement('input');
+        input.type   = 'hidden';
+        input.id     = 'hidden_' + name;
+        input.name   = name;
         hiddenInputs.appendChild(input);
     }
     input.value = value;
 }
 
 function updateTotalCount() {
-    // Count real rows only — not the empty placeholder row
-    const realRows = tableBody.querySelectorAll('tr[data-index]').length;
-    setHidden('total_count', realRows);
+    const count = tableBody.querySelectorAll('tr[data-index]').length;
+    setHidden('total_count', count);
 }
 
-function attachDeleteHandler(button, index, itemTotal,itemDiscount) {
+// ✅ fixed — now accepts 4 params correctly (removed unused itemFinalTotal param)
+function attachDeleteHandler(button, index, itemTotal, itemDiscount) {
     button.addEventListener('click', () => {
         button.closest('tr').remove();
         hiddenInputs.querySelectorAll(`[data-row="${index}"]`)
@@ -67,30 +60,43 @@ function attachDeleteHandler(button, index, itemTotal,itemDiscount) {
         updateTotalCount();
         updateSummary();
 
-        // Show empty message if no rows left
         if (tableBody.querySelectorAll('tr[data-index]').length === 0) {
             emptyRow.style.display = '';
         }
     });
 }
 
-discountInput.addEventListener('input', updateSummary);
+// Initialize medicine autocomplete
+if (typeof initMedicineSearch === 'function') {
+    initMedicineSearch((medicine) => {
+        const customPriceInput = document.getElementById('customPrice');
+        if (customPriceInput) {
+            customPriceInput.placeholder = `Default: ৳${medicine.price.toFixed(2)}`;
+        }
 
-// Sync buyer name into hidden input before submitting
-document.getElementById('dbForm').addEventListener('submit', () => {
-    setHidden('buyer_name', document.getElementById('buyerName').value.trim());
-});
+        // Fill discount field with company's discount percentage
+        // User can still edit it manually after this
+        if (medicine.discount_pct && medicine.discount_pct> 0){
+            discountInput.value = medicine.discount_pct;
+        }
+        else{
+            discountInput.value = 0 ;
+        }
+        
+        document.getElementById('saleQuantity').focus();
+    });
+}
 
 form.addEventListener('submit', async e => {
     e.preventDefault();
 
-    const name        = document.getElementById('productName').value.trim();
-    const quantity    = parseInt(document.getElementById('saleQuantity').value);
-    const customPrice = parseFloat(document.getElementById('customPrice').value);
+    const name           = document.getElementById('productName').value.trim();
+    const quantity       = parseInt(document.getElementById('saleQuantity').value);
+    const customPrice    = parseFloat(document.getElementById('customPrice').value);
+    const discountPercent = parseFloat(discountInput.value) || 0;
 
     if (!name || !quantity) return;
 
-    // Fetch default price and stock from server
     const response = await fetch(
         `/get-wholesale-price/?name=${encodeURIComponent(name)}`
     );
@@ -109,28 +115,24 @@ form.addEventListener('submit', async e => {
         return;
     }
 
-    // Use custom price if provided, otherwise use database price
-    const price     = (!isNaN(customPrice) && customPrice > 0)
-                        ? customPrice
-                        : data.price;
-    const itemTotal = price * quantity;
-    const itemDiscountAmount = grossTotal * (discountPercent / 100);
-    const itemFinalTotal     = Math.max(0, grossTotal - itemDiscountAmount);
+    const price              = (!isNaN(customPrice) && customPrice > 0) ? customPrice : data.price;
+    const itemTotal          = price * quantity;
+    const itemDiscountAmount = itemTotal * (discountPercent / 100);
+    const itemFinalTotal     = Math.max(0, itemTotal - itemDiscountAmount);
     const index              = rowCount;
 
-
-    // Hide the empty placeholder row
     emptyRow.style.display = 'none';
 
-    // Add row to table
     const row = document.createElement('tr');
-    row.dataset.index = index;   // mark as a real data row
+    row.dataset.index = index;
     row.innerHTML = `
         <td style="font-weight:600;">${name}</td>
         <td><span class="pill">${data.product_type}</span></td>
         <td class="num">${quantity}</td>
         <td class="num">${currency(price)}</td>
+        <td class="num" style="color:var(--data-coral);">${currency(itemDiscountAmount)}</td>
         <td class="num">${currency(itemTotal)}</td>
+        <td class="num" style="font-weight:700; color:var(--accent);">${currency(itemFinalTotal)}</td>
         <td>
             <button type="button" class="row-delete">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
@@ -143,20 +145,29 @@ form.addEventListener('submit', async e => {
         </td>
     `;
     tableBody.appendChild(row);
-    attachDeleteHandler(row.querySelector('.row-delete'), index, itemTotal);
 
-    // Inject hidden inputs for Django
-    const fields = { name, quantity, price, total: itemTotal };
+    // ✅ fixed — pass only 4 args matching the function definition
+    attachDeleteHandler(row.querySelector('.row-delete'), index, itemTotal, itemDiscountAmount);
+
+    // Inject hidden inputs — total stores the after-discount amount
+    const fields = {
+        name,
+        type:     data.product_type,
+        quantity,
+        price,
+        total:    itemFinalTotal,
+    };
     for (const [key, val] of Object.entries(fields)) {
-        const input = document.createElement('input');
-        input.type      = 'hidden';
-        input.name      = `sale_${index}_${key}`;
-        input.value     = val;
-        input.dataset.row = index;
+        const input         = document.createElement('input');
+        input.type          = 'hidden';
+        input.name          = `sale_${index}_${key}`;
+        input.value         = val;
+        input.dataset.row   = index;
         hiddenInputs.appendChild(input);
     }
 
     runningSubtotal += itemTotal;
+    runningDiscount += itemDiscountAmount;
     rowCount++;
     updateTotalCount();
     updateSummary();
@@ -170,6 +181,14 @@ function submitSale(shouldPrint) {
         alert('Please add at least one medicine before confirming.');
         return;
     }
+    // ✅ sync buyer name HERE — not in the submit event listener
+    const buyerName = document.getElementById('buyerName').value.trim();
+    if (!buyerName) {
+        alert('Please enter a buyer name before confirming.');
+        document.getElementById('buyerName').focus();
+        return;
+    }
+    setHidden('buyer_name', buyerName);
     setHidden('print', shouldPrint ? '1' : '0');
     document.getElementById('dbForm').submit();
 }

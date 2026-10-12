@@ -1,0 +1,402 @@
+[
+{
+  "model": "auth.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$8ODC6c7CnNuFQyFohxdZYq$lH1AgkgR9ztMGH5w1AeX1YOuuBKu+nRiheN6p+mBV/g=",
+    "last_login": "2026-10-07T17:42:32.054Z",
+    "is_superuser": true,
+    "username": "rahat",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-06-21T11:20:39.481Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 2,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$QhmK8PFVZ0i3CQBTwBj5lT$wdQ7lFqDIi5lxxpJImjoSKMFXdNXWm2qGJs062fWWfA=",
+    "last_login": "2026-10-07T17:43:21.229Z",
+    "is_superuser": false,
+    "username": "karim1",
+    "first_name": "Karim Ahmed",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-28T09:44:51.844Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 3,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$B3qqaBi8wDBDuqiwrxNjWN$Npe88lidCKW4mgkz7b2vAdWV+tAdjDfHWATpeeSt2eE=",
+    "last_login": "2026-07-01T09:39:45.132Z",
+    "is_superuser": false,
+    "username": "admin",
+    "first_name": "Admin",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-06-28T09:52:42.489Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "644sfn23it09rpu32seouz95zcu5wce5",
+  "fields": {
+    "session_data": ".eJxVjDkOwjAQAP-yNbJ8xKyTkj5vsNbeDQ4gW8pRIf6OIqWAdmY0b4i0byXuqyxxZhjAwuWXJcpPqYfgB9V7U7nVbZmTOhJ12lWNjeV1O9u_QaG1wABGLPsp2xDIeJNYJ0xWtPPopEfBjlGu3IVOkzjW4kxGYhvypHWP7OHzBeg3N_w:1xAPNH:NvxrpfEKjpwf4xNbSeTQBDOy_ax7aOwQ3MqFHENL7KE",
+    "expire_date": "2026-10-10T10:11:19.841Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "8ihy9v6eh1teqc3jhgk28y27yktgkgzu",
+  "fields": {
+    "session_data": ".eJxVjDkOwjAQAP-yNbJ8xKyTkj5vsNbeDQ4gW8pRIf6OIqWAdmY0b4i0byXuqyxxZhjAwuWXJcpPqYfgB9V7U7nVbZmTOhJ12lWNjeV1O9u_QaG1wABGLPsp2xDIeJNYJ0xWtPPopEfBjlGu3IVOkzjW4kxGYhvypHWP7OHzBeg3N_w:1wrXUe:eJMNxIiB5nW-2bYLOW1BNSQgwCygkXyBDMxsUyKUaEw",
+    "expire_date": "2026-08-19T09:00:56.094Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "aiaak4ha0krhb12m70nneg6wt83fp4l2",
+  "fields": {
+    "session_data": ".eJxVjDkOwjAQAP-yNbJ8xKyTkj5vsNbeDQ4gW8pRIf6OIqWAdmY0b4i0byXuqyxxZhjAwuWXJcpPqYfgB9V7U7nVbZmTOhJ12lWNjeV1O9u_QaG1wABGLPsp2xDIeJNYJ0xWtPPopEfBjlGu3IVOkzjW4kxGYhvypHWP7OHzBeg3N_w:1xEVjF:ERVTgl1fPMz8ufCKMskbP8Qk_uD-tev46yDdxi2bEMg",
+    "expire_date": "2026-10-21T17:46:57.096Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "axnf943jkhe8lkrv7xoi5sie9sp408p4",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4bwKFB69O43kIVdpGpoUtqT8d9Nkx70OjOZN0Tctxr3zmucCSZQcPllCfOT2yHoge2-iLy0bZ2TOBJx2i5uC_HrerZ_g4q9wgRFSxecNoGcGXnkgH7QpkjtiDkpkzUnG5TXhGQT5SQDliGXYj07tgo-X92qOG0:1xChHA:ZnX9TlY5F4a8riSSHOvd8_IxWbBusyUVdoAy6aBwQKE",
+    "expire_date": "2026-10-16T17:42:28.127Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "ln1h202y1isgnsststif3pjrw536y99t",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4bwKFB69O43kIVdpGpoUtqT8d9Nkx70OjOZN0Tctxr3zmucCSZQcPllCfOT2yHoge2-iLy0bZ2TOBJx2i5uC_HrerZ_g4q9wgRFSxecNoGcGXnkgH7QpkjtiDkpkzUnG5TXhGQT5SQDliGXYj07tgo-X92qOG0:1xDQA4:sWjdiOy_eq7L9aLB_81uOwD40VZPbUSgUf8rFjZFXY0",
+    "expire_date": "2026-10-18T17:38:08.404Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "rzinmtcbqto3fah4ibx43xzipldagwzm",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4bwKFB69O43kIVdpGpoUtqT8d9Nkx70OjOZN0Tctxr3zmucCSZQcPllCfOT2yHoge2-iLy0bZ2TOBJx2i5uC_HrerZ_g4q9wgRFSxecNoGcGXnkgH7QpkjtiDkpkzUnG5TXhGQT5SQDliGXYj07tgo-X92qOG0:1weviQ:KKkDl6U7I3W5el-YwHn64ZAKXfvfp-g0wdDn2__ybls",
+    "expire_date": "2026-07-15T14:15:02.347Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "vvr8cw3rf8wnx0tnw7zzvoquzsihm7ox",
+  "fields": {
+    "session_data": ".eJxVjDkOwjAQAP-yNbJ8xKyTkj5vsNbeDQ4gW8pRIf6OIqWAdmY0b4i0byXuqyxxZhjAwuWXJcpPqYfgB9V7U7nVbZmTOhJ12lWNjeV1O9u_QaG1wABGLPsp2xDIeJNYJ0xWtPPopEfBjlGu3IVOkzjW4kxGYhvypHWP7OHzBeg3N_w:1weveI:Pdkqb_evBy2OqNjYeGu_rdHBykza7htHGqdoMJbZH5U",
+    "expire_date": "2026-07-15T14:10:46.749Z"
+  }
+},
+{
+  "model": "pharmacy.medicine",
+  "pk": 4,
+  "fields": {
+    "name": "Napa",
+    "company": "Beximco",
+    "product_type": "Tablet",
+    "quantity": 50,
+    "price_per_unit": "2.00",
+    "total_price": "200.00",
+    "total_dis_price": "199.00"
+  }
+},
+{
+  "model": "pharmacy.medicine",
+  "pk": 5,
+  "fields": {
+    "name": "Thyrrin",
+    "company": "Beximco",
+    "product_type": "Tablet",
+    "quantity": 70,
+    "price_per_unit": "3.00",
+    "total_price": "270.00",
+    "total_dis_price": "270.00"
+  }
+},
+{
+  "model": "pharmacy.medicine",
+  "pk": 6,
+  "fields": {
+    "name": "Tafnil",
+    "company": "Square",
+    "product_type": "Tablet",
+    "quantity": 10,
+    "price_per_unit": "10.00",
+    "total_price": "1100.00",
+    "total_dis_price": "1000.00"
+  }
+},
+{
+  "model": "pharmacy.sale",
+  "pk": 25,
+  "fields": {
+    "medicine": 4,
+    "salesman": 2,
+    "quantity_sold": 2,
+    "price_per_unit": "2.00",
+    "item_total": "4.00",
+    "subtotal": "4.00",
+    "discount": "0.00",
+    "final_price": "4.00",
+    "sold_at": "2026-10-02T17:34:29.560Z"
+  }
+},
+{
+  "model": "pharmacy.sale",
+  "pk": 26,
+  "fields": {
+    "medicine": 5,
+    "salesman": 2,
+    "quantity_sold": 10,
+    "price_per_unit": "3.00",
+    "item_total": "30.00",
+    "subtotal": "50.00",
+    "discount": "2.50",
+    "final_price": "47.50",
+    "sold_at": "2026-10-05T05:07:56.282Z"
+  }
+},
+{
+  "model": "pharmacy.sale",
+  "pk": 27,
+  "fields": {
+    "medicine": 4,
+    "salesman": 2,
+    "quantity_sold": 10,
+    "price_per_unit": "2.00",
+    "item_total": "20.00",
+    "subtotal": "50.00",
+    "discount": "2.50",
+    "final_price": "47.50",
+    "sold_at": "2026-10-05T05:07:56.443Z"
+  }
+},
+{
+  "model": "pharmacy.wholesale",
+  "pk": 2,
+  "fields": {
+    "buyer_name": "City pharma",
+    "medicine": 4,
+    "salesman": 2,
+    "quantity_sold": 3,
+    "price_per_unit": "2.00",
+    "item_total": "5.70",
+    "subtotal": "21.00",
+    "discount": "0.75",
+    "final_price": "20.25",
+    "sold_at": "2026-10-05T05:26:16.151Z"
+  }
+},
+{
+  "model": "pharmacy.wholesale",
+  "pk": 3,
+  "fields": {
+    "buyer_name": "City pharma",
+    "medicine": 5,
+    "salesman": 2,
+    "quantity_sold": 5,
+    "price_per_unit": "3.00",
+    "item_total": "14.55",
+    "subtotal": "21.00",
+    "discount": "0.75",
+    "final_price": "20.25",
+    "sold_at": "2026-10-05T05:26:16.293Z"
+  }
+},
+{
+  "model": "pharmacy.wholesale",
+  "pk": 4,
+  "fields": {
+    "buyer_name": "Desh pharma",
+    "medicine": 4,
+    "salesman": 2,
+    "quantity_sold": 5,
+    "price_per_unit": "2.00",
+    "item_total": "9.20",
+    "subtotal": "25.00",
+    "discount": "2.00",
+    "final_price": "23.00",
+    "sold_at": "2026-10-05T05:42:49.636Z"
+  }
+},
+{
+  "model": "pharmacy.wholesale",
+  "pk": 5,
+  "fields": {
+    "buyer_name": "Desh pharma",
+    "medicine": 5,
+    "salesman": 2,
+    "quantity_sold": 5,
+    "price_per_unit": "3.00",
+    "item_total": "13.80",
+    "subtotal": "25.00",
+    "discount": "2.00",
+    "final_price": "23.00",
+    "sold_at": "2026-10-05T05:42:49.782Z"
+  }
+},
+{
+  "model": "pharmacy.wholesale",
+  "pk": 6,
+  "fields": {
+    "buyer_name": "Test",
+    "medicine": 4,
+    "salesman": 2,
+    "quantity_sold": 10,
+    "price_per_unit": "2.00",
+    "item_total": "18.00",
+    "subtotal": "20.00",
+    "discount": "2.00",
+    "final_price": "18.00",
+    "sold_at": "2026-10-06T18:08:29.659Z"
+  }
+},
+{
+  "model": "pharmacy.wholesale",
+  "pk": 7,
+  "fields": {
+    "buyer_name": "Peoples Pharma",
+    "medicine": 6,
+    "salesman": 2,
+    "quantity_sold": 100,
+    "price_per_unit": "10.00",
+    "item_total": "880.00",
+    "subtotal": "1140.00",
+    "discount": "136.00",
+    "final_price": "1004.00",
+    "sold_at": "2026-10-07T17:46:56.614Z"
+  }
+},
+{
+  "model": "pharmacy.wholesale",
+  "pk": 8,
+  "fields": {
+    "buyer_name": "Peoples Pharma",
+    "medicine": 4,
+    "salesman": 2,
+    "quantity_sold": 20,
+    "price_per_unit": "2.00",
+    "item_total": "36.00",
+    "subtotal": "1140.00",
+    "discount": "136.00",
+    "final_price": "1004.00",
+    "sold_at": "2026-10-07T17:46:56.782Z"
+  }
+},
+{
+  "model": "pharmacy.company",
+  "pk": 1,
+  "fields": {
+    "company": "Beximco",
+    "discount_price": "10.00"
+  }
+},
+{
+  "model": "pharmacy.company",
+  "pk": 2,
+  "fields": {
+    "company": "Square",
+    "discount_price": "12.00"
+  }
+},
+{
+  "model": "pharmacy.invoice",
+  "pk": 3,
+  "fields": {
+    "company": 2,
+    "invoice_number": "3242324",
+    "created_at": "2026-10-07T17:44:19.487Z"
+  }
+},
+{
+  "model": "pharmacy.purchase",
+  "pk": 4,
+  "fields": {
+    "medicine": 4,
+    "company": "Beximco",
+    "quantity": 90,
+    "price_per_unit": "2.00",
+    "total_cost": "180.00",
+    "total_dis_price": "199.00",
+    "purchased_at": "2026-10-02T17:06:55.600Z",
+    "invoice_number": "",
+    "added_by": 1
+  }
+},
+{
+  "model": "pharmacy.purchase",
+  "pk": 5,
+  "fields": {
+    "medicine": 5,
+    "company": "Beximco",
+    "quantity": 90,
+    "price_per_unit": "3.00",
+    "total_cost": "270.00",
+    "total_dis_price": "270.00",
+    "purchased_at": "2026-10-02T17:06:55.784Z",
+    "invoice_number": "",
+    "added_by": 1
+  }
+},
+{
+  "model": "pharmacy.purchase",
+  "pk": 6,
+  "fields": {
+    "medicine": 6,
+    "company": "Square",
+    "quantity": 100,
+    "price_per_unit": "10.00",
+    "total_cost": "1000.00",
+    "total_dis_price": "1000.00",
+    "purchased_at": "2026-10-07T17:44:19.401Z",
+    "invoice_number": "3242324",
+    "added_by": 2
+  }
+},
+{
+  "model": "pharmacy.purchase",
+  "pk": 7,
+  "fields": {
+    "medicine": 6,
+    "company": "",
+    "quantity": 10,
+    "price_per_unit": "10.00",
+    "total_cost": "100.00",
+    "total_dis_price": "100.00",
+    "purchased_at": "2026-10-07T17:54:22.352Z",
+    "invoice_number": "231211221",
+    "added_by": 2
+  }
+},
+{
+  "model": "pharmacy.procustomer",
+  "pk": 4,
+  "fields": {
+    "name": "Rahat",
+    "phone_number": "01580356019",
+    "created_at": "2026-10-05T05:44:29.639Z"
+  }
+}
+]

@@ -2,6 +2,12 @@ from decimal import Decimal, InvalidOperation
 from itertools import groupby
 import zoneinfo
 
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
+
+from django.http import JsonResponse
 from django.shortcuts import render,redirect,get_object_or_404
 from django.contrib.auth import authenticate,login,logout
 from django.contrib.auth.decorators import login_required
@@ -190,7 +196,7 @@ def get_companies(request):
         'companies': [{'id': c.pk, 'name': c.company, 'discount': str(c.discount_price)} for c in companies]
     })
 
-@login_required
+"""@login_required
 def add_company_ajax(request):
     if request.method != 'POST':
         return JsonResponse({'success':False,'error': 'Invalid request.'})
@@ -216,8 +222,76 @@ def add_company_ajax(request):
     else:
         company = Company.objects.create(company=name, discount_price=discount)
 
-    return JsonResponse({'success': True, 'id': company.pk, 'name': company.company,'discount': str(company.discount_price),})
+    return JsonResponse({'success': True, 'id': company.pk, 'name': company.company,'discount': str(company.discount_price),})"""
 
+@login_required
+def add_edit_company(request):
+    error =None
+    success = None
+
+    if request.method == 'POST':
+        name     = request.POST.get('company_name', '').strip()
+        discount = request.POST.get('discount', '0').strip()
+
+        if not name:
+            error = 'Company name is required.'
+        else:
+            try:
+                discount = float(discount)
+                if discount < 0 or discount > 100:
+                    error = 'Discount must be between 0 and 100.'
+                elif Company.objects.filter(company__iexact=name).exists():
+                    error = f"'{name}' is already registered."
+                else:
+                    Company.objects.create(
+                        company=name,
+                        discount_price=discount,
+                    )
+                    success = f"'{name}' added successfully."
+            except ValueError:
+                error = 'Discount must be a valid number.'
+
+    companies = Company.objects.all().order_by('company')
+    return render(request, 'pharmacy/add-company.html', {
+        'companies': companies,
+        'error':     error,
+        'success':   success,
+    })
+
+@login_required
+def edit_company_save(request, pk):
+    company = get_object_or_404(Company,pk=pk)
+
+    if request.method == 'POST':
+        name = request.POST.get('company_name', '').strip()
+        discount = request.POST.get('discount', '0').strip()
+        errors = []
+        if not name:
+            errors.append('Company name is required.')
+        try:
+            discount = float(discount)
+            if discount < 0 or discount > 100:
+                errors.append('Discount must be between 0 and 100.')
+        except ValueError:
+            errors.append('Discount must be a valid number.')
+
+        if not errors:
+            company.company        = name
+            company.discount_price = discount
+            company.save()
+        companies = Company.objects.all().order_by('company')
+        return render(request, 'pharmacy/add_company.html', {
+            'companies':  companies,
+            'editing_pk': pk,
+            'edit_errors': errors,
+        })
+    return redirect('pharmacy:add_edit_company') 
+
+@login_required
+def delete_company(request, pk):
+    if request.method == 'POST':
+        get_object_or_404(Company, pk=pk).delete()
+    return redirect('pharmacy:add_edit_company')
 
 @login_required
 def edit_medicine(request):
@@ -573,14 +647,31 @@ def medicine_search(request):
     results = []
 
     if query:
-        medicines = Medicine.objects.filter(name__icontains = query).values('name','product_type','quantity','price_per_unit')[:8]
+        medicines = Medicine.objects.filter(name__icontains = query).values('name','product_type','quantity','price_per_unit','company')[:8]
 
         for m in medicines:
+            original_price = float(m['price_per_unit'])
+            discount_price = None
+            try:
+                company_obj = Company.objects.get(company__iexact=m['company'])
+                discount_pct = float(company_obj.discount_price)
+
+                if discount_pct>0:
+                    # discount_price stores a percentage e.g. 10 means 10% off
+                    discount_amount = original_price * (discount_pct / 100)
+                    discount_price  = round(original_price - discount_amount, 2)
+
+            except Company.DoesNotExist:
+                pass
+
             results.append({
                 'name': m['name'],
                 'product_type': m['product_type'],
                 'quantity': m['quantity'],
-                'price': float(m['price_per_unit']),
+                'price':         original_price,
+                'company':       m['company'],
+                'discount_price': discount_price,       # None if no discount
+                'discount_pct':   discount_pct if discount_price else 0,
             })
     return JsonResponse({'results': results})
 
@@ -795,7 +886,7 @@ def update_medicine(request):
                     # Restock: add to existing quantity, update price to the new one
                     existing.quantity += quantity
                     existing.price_per_unit = price
-                    existing.total_price = (existing.total_price or float('0')) + total_price
+                    existing.total_price = (float(existing.total_price) or float('0')) + total_price
                     if company:
                         existing.company = company
                     if invoice_number:
@@ -844,6 +935,123 @@ def receipt(request):
     if not data:
         return redirect('pharmacy:sale_medicines')
     return render(request, 'pharmacy/receipt.html', {'receipt': data})
+
+@login_required
+def print_sale_receipt(request,sale_type,pk):
+    """
+    Fetches the sale record by pk, groups all items from the same
+    transaction, builds the receipt dict, stores in session,
+    then redirects to the existing receipt page.
+    """
+    if sale_type == 'retail':
+        sale = get_object_or_404(Sale,pk=pk)
+
+        # Group all items from the same transaction
+        # Same transaction = same salesman, same subtotal,
+        # same discount, same final_price, same date
+        related = Sale.objects.filter(
+            salesman=sale.salesman,
+            subtotal=sale.subtotal,
+            discount=sale.discount,
+            final_price=sale.final_price,
+            sold_at__date=sale.sold_at.date(),
+        ).select_related('medicine')
+
+        items = [{
+            'name':  s.medicine.name,
+            'type':  s.medicine.product_type,
+            'qty':   s.quantity_sold,
+            'price': float(s.price_per_unit),
+            'total': float(s.item_total)
+        }for s in related]
+
+        request.session['last_receipt'] = {
+            'sale_type':   'Retail Sale',
+            'source':      'history',
+            'invoice_no':  f"INV-{sale.sold_at.strftime('%Y%m%d-%H%M%S')}",
+            'sold_at':     sale.sold_at.strftime('%d %b %Y  %I:%M %p'),
+            'salesman':    sale.salesman.get_full_name() or sale.salesman.username,
+            'buyer':       None,
+            'items':       items,
+            'subtotal':    float(sale.subtotal),
+            'discount':    float(sale.discount),
+            'final_price': float(sale.final_price),
+        }
+
+    elif sale_type == 'wholesale':
+        sale = get_object_or_404(Sale,pk=pk)
+        
+        
+        related = Wholesale.objects.filter(
+            salesman=sale.salesman,
+            buyer_name=sale.buyer_name,
+            subtotal=sale.subtotal,
+            discount=sale.discount,
+            final_price=sale.final_price,
+            sold_at__date=sale.sold_at.date(),
+        ).select_related('medicine')
+        
+        items = [{
+            'name':  s.medicine.name,
+            'type':  s.medicine.product_type,
+            'qty':   s.quantity_sold,
+            'price': float(s.price_per_unit),
+            'total': float(s.item_total)
+        }for s in related]
+        
+        request.session['last_receipt'] = {
+            'sale_type':   'Wholesale',
+            'source':      'history',
+            'invoice_no':  f"WHL-{sale.sold_at.strftime('%Y%m%d-%H%M%S')}",
+            'sold_at':     sale.sold_at.strftime('%d %b %Y  %I:%M %p'),
+            'salesman':    sale.salesman.get_full_name() or sale.salesman.username,
+            'buyer':       sale.buyer_name,
+            'items':       items,
+            'subtotal':    float(sale.subtotal),
+            'discount':    float(sale.discount),
+            'final_price': float(sale.final_price),
+        }
+
+    elif sale_type == 'pro':
+        sale = get_object_or_404(ProCustomerSale,pk=pk)
+        
+        
+        related = ProCustomerSale.objects.filter(
+            salesman=sale.salesman,
+            customer=sale.customer,
+            subtotal=sale.subtotal,
+            discount=sale.discount,
+            final_price=sale.final_price,
+            sold_at__date=sale.sold_at.date(),
+        ).select_related('medicine', 'customer')
+        
+        items = [{
+            'name':  s.medicine.name,
+            'type':  s.medicine.product_type,
+            'qty':   s.quantity_sold,
+            'price': float(s.price_per_unit),
+            'total': float(s.item_total)
+        }for s in related]
+        
+        request.session['last_receipt'] = {
+            'sale_type':    'Pro Customer Sale',
+            'source':      'history',
+            'invoice_no':   f"PRO-{sale.sold_at.strftime('%Y%m%d-%H%M%S')}",
+            'sold_at':      sale.sold_at.strftime('%d %b %Y  %I:%M %p'),
+            'salesman':     sale.salesman.get_full_name() or sale.salesman.username,
+            'buyer':        sale.customer.name,
+            'buyer_phone':  sale.customer.phone_number,
+            'items':        items,
+            'subtotal':     float(sale.subtotal),
+            'discount':     float(sale.discount),
+            'final_price':  float(sale.final_price),
+        }
+
+    else:
+        return redirect('pharmacy:sales_history')
+
+    return redirect('pharmacy:receipt')
+
 
 @login_required
 def medicine_list(request):
@@ -1502,6 +1710,211 @@ def pro_customer_report(request):
     }    
 
     return render(request,'pharmacy/pro-customer-report.html',context)
+
+def pro_customer_report_excel(request):
+    today = timezone.localdate()
+
+    try:
+        selected_month = int(request.GET.get('month', today.month))
+    except (ValueError, TypeError):
+        selected_month = today.month
+    
+    try:
+        selected_year = int(request.GET.get('year', today.year))
+    except (ValueError, TypeError):
+        selected_year = today.year
+
+    month_name = calendar.month_name[selected_month]
+
+    # Filter condition for the specific month and year
+    monthly_filter = Q(
+        orders__sold_at__year=selected_year,
+        orders__sold_at__month=selected_month,
+    )
+
+    # Get every pro customer and annotate with their yearly totals
+    customers = ProCustomer.objects.annotate(
+
+        # Total units sold to this customer this year
+        total_qty = Sum(
+            'orders__quantity_sold',
+            filter=monthly_filter
+        ),
+
+        # Total revenue before discount
+        total_subtotal = Sum(
+            'orders__subtotal',
+            filter=monthly_filter
+        ),
+
+            # Total discount given
+            total_discount = Sum(
+            'orders__discount',
+            filter=monthly_filter
+        ),
+
+        # Net amount actually paid — this is what we display
+        net_sale = Sum(
+            'orders__final_price',
+            filter=monthly_filter
+        ),
+
+        # Count of individual transactions
+        order_count = Count(
+            'orders',
+            filter=monthly_filter,
+            distinct=True
+        ),
+
+        # Last purchase date
+        last_order=Max('orders__sold_at',filter=monthly_filter),
+    ).order_by('-net_sale')
+    # ── Build the Excel workbook ──
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"{month_name} {selected_year}"
+
+    # Define reusable styles
+    header_font    = Font(bold=True, color='FFFFFF', size=11)
+    header_fill    = PatternFill(fill_type='solid', fgColor='0E8074')  # teal
+    subheader_fill = PatternFill(fill_type='solid', fgColor='E5F4F1')
+    subheader_font = Font(bold=True, color='0A6359', size=10)
+    center         = Alignment(horizontal='center', vertical='center')
+    right          = Alignment(horizontal='right',  vertical='center')
+    left           = Alignment(horizontal='left',   vertical='center')
+    thin           = Side(style='thin', color='DEE7E4')
+    border         = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    # ── Row 1 — Report title ──
+    ws.merge_cells('A1:J1')
+    title_cell = ws['A1']
+    title_cell.value     = f"Peoples Pharma — Pro Customer Report"
+    title_cell.font      = Font(bold=True, size=14, color='0E8074')
+    title_cell.alignment = center
+    ws.row_dimensions[1].height = 28
+
+    # ── Row 2 — Period subtitle ──
+    ws.merge_cells('A2:J2')
+    period_cell = ws['A2']
+    period_cell.value     = f"Period: {month_name} {selected_year}  |  Generated: {today.strftime('%d %b %Y')}"
+    period_cell.font      = Font(italic=True, size=10, color='5C6F6C')
+    period_cell.alignment = center
+    ws.row_dimensions[2].height = 18
+
+    # ── Row 3 — blank spacer ──
+    ws.row_dimensions[3].height = 8
+
+    # ── Row 4 — Column headers ──
+    headers = [
+        '#',
+        'Customer Name',
+        'Phone Number',
+        'Orders',
+        'Units Sold',
+        'Discount Given (৳)',
+        'Net Sale Amount (৳)',
+        'Share of Revenue (%)',
+        'Last Order Date',
+        'Last Order Time',
+    ]
+    ws.row_dimensions[4].height = 22
+
+    for col_num,header in enumerate(headers,start=1):
+        cell = ws.cell(row=4, column=col_num, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center
+        cell.border = border
+
+    # ── Compute grand total for share calculation ──
+    grand_total = sum(
+        float(c.net_sale or 0) for c in customers
+    )
+
+    # ── Rows 5+ — Data ──
+    for row_num, c in enumerate(customers, start=5):
+        net         = float(c.net_sale or 0)
+        discount    = float(c.total_discount or 0)
+        qty         = c.total_qty or 0
+        order_count = c.order_count or 0
+        share       = round((net / grand_total * 100), 1) if grand_total > 0 else 0
+
+        last_date = c.last_order.strftime('%d %b %Y') if c.last_order else '—'
+        last_time = c.last_order.strftime('%I:%M %p') if c.last_order else '—'
+
+        row_data = [
+            row_num - 4,          # serial number
+            c.name,
+            c.phone_number,
+            order_count,
+            qty,
+            round(discount, 2),
+            round(net, 2),
+            share,
+            last_date,
+            last_time,
+        ]
+
+        # Alternate row shading
+        row_fill = PatternFill(
+            fill_type='solid',
+            fgColor='F2F6F5' if row_num % 2 == 0 else 'FFFFFF'
+        )
+
+        for col_num, value in enumerate(row_data, start=1):
+            cell = ws.cell(row=row_num, column=col_num, value=value)
+            cell.border = border
+            cell.fill   = row_fill
+            ws.row_dimensions[row_num].height = 18
+
+            # Alignment by column type
+            if col_num == 1:
+                cell.alignment = center
+            elif col_num in (6, 7, 8):
+                cell.alignment = right
+                cell.font      = Font(bold=(col_num == 7))
+            else:
+                cell.alignment = left
+
+    # ── Grand total footer row ──
+    footer_row = customers.count() + 5
+    ws.row_dimensions[footer_row].height = 22
+
+    ws.merge_cells(f'A{footer_row}:F{footer_row}')
+    footer_label = ws[f'A{footer_row}']
+    footer_label.value     = 'GRAND TOTAL'
+    footer_label.font      = Font(bold=True, color='0A6359', size=11)
+    footer_label.fill      = subheader_fill
+    footer_label.alignment = right
+    footer_label.border    = border
+
+    footer_total = ws.cell(
+        row=footer_row,
+        column=7,
+        value=round(grand_total, 2)
+    )
+    footer_total.font      = Font(bold=True, color='0A6359', size=11)
+    footer_total.fill      = subheader_fill
+    footer_total.alignment = right
+    footer_total.border    = border
+
+    # ── Column widths ──
+    column_widths = [5, 28, 18, 10, 12, 22, 22, 22, 18, 14]
+    for i, width in enumerate(column_widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = width
+
+    # ── Freeze the header row ──
+    ws.freeze_panes = 'A5'
+
+    # ── Send as HTTP response ──
+    filename = f"pro_customer_report_{month_name}_{selected_year}.xlsx"
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response    
+
 
 """def get_tier(net_sale):
     #Assign a tier label based on yearly spend.

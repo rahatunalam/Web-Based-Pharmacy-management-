@@ -142,7 +142,9 @@
     </svg>
     Print Receipt
   </button>
-  {% if receipt.sale_type == 'Retail Sale' %}
+  {% if receipt.source == 'history'%}
+    <a href="{% url 'pharmacy:sales_history' %}" class="btn-back">← Back</a>
+  {% elif receipt.sale_type == 'Retail Sale' %}
     <a href="{% url 'pharmacy:sale_medicines' %}" class="btn-back">← Back</a>
   {% elif receipt.sale_type == 'Wholesale' %}
     <a href="{% url 'pharmacy:wholesale' %}" class="btn-back">← Back</a>

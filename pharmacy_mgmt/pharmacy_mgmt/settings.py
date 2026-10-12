@@ -75,8 +75,12 @@ WSGI_APPLICATION = 'pharmacy_mgmt.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE':   'django.db.backends.postgresql',
+        'NAME':     'peoples_pharma',
+        'USER':     'postgres',
+        'PASSWORD': 'Rahat@1520',
+        'HOST':     'localhost',
+        'PORT':     '5432',
     }
 }
 

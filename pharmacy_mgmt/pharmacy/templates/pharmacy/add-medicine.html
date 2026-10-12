@@ -36,8 +36,12 @@
         <span class="nav__pulse"></span>
       </a></li>
       <li><a href="{% url 'pharmacy:add_salesman' %}" class="nav__link">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
         Add Salesman
+      </a></li>
+      <li><a href="{% url 'pharmacy:add_edit_company' %}" class="nav__link">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+        Add/Edit Company
       </a></li>
       <li><a href="{% url 'pharmacy:pro_customer' %}" class="nav__link">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
@@ -95,24 +99,20 @@
           <select id="companyName" name="company_name">
             <option value="">Loading companies...</option>
           </select>
-          <button type="button" id="addCompanyBtn" title="Add new company"
-            style="border:1px solid var(--border); background:var(--surface);
-                  border-radius:6px; width:30px; height:30px; font-weight:700;
-                  color:var(--accent); cursor:pointer;">+</button>
         </div>
 
         <!-- Inline "new company" row — hidden until + is clicked -->
-        <div id="newCompanyRow" style="display:none; gap:6px; margin-top:4px;">
+       <!--<div id="newCompanyRow" style="display:none; gap:6px; margin-top:4px;">
           <input type="text" id="newCompanyInput" placeholder="New company name"
             style="border:1px solid var(--border); border-radius:var(--radius-sm);
-                  padding:6px 10px; font-size:13px; flex:1;">
+                  padding:6px 10px; font-size:13px; flex:1;">-->
           <!-- Extra discount input field -->
-          <input type="number" id="newCompanyDiscount" placeholder="Discount %" min="0" max="100" step="0.01"
+          <!--<input type="number" id="newCompanyDiscount" placeholder="Discount %" min="0" max="100" step="0.01"
             style="border:1px solid var(--border); border-radius:var(--radius-sm);
            padding:6px 10px; font-size:13px; width:110px;">
           <button type="button" id="saveCompanyBtn" class="btn-add" style="padding:6px 12px;">Save</button>
           <button type="button" id="cancelCompanyBtn" class="btn-cancel" style="padding:6px 12px;">Cancel</button>
-        </div>
+        </div> -->
         
         <!-- Invoice number — sits directly below company dropdown -->
         <div style="display:flex; align-items:center; gap:8px;
@@ -194,8 +194,8 @@
             <th>Product Type</th>
             <th class="num">Quantity</th>
             <th class="num">Price / Unit</th>
-            <th class="num">Total Price</th>
-            <th class="num">Discount Price</th>
+            <th class="num">Sell Price</th>
+            <th class="num">Buy Price</th>
             <th></th>
           </tr>
         </thead>
@@ -235,7 +235,7 @@ async function loadCompanies(selectValue = null) {
 }
 
 document.addEventListener('DOMContentLoaded', () => loadCompanies());
-
+/*
 document.getElementById('addCompanyBtn').addEventListener('click', () => {
     const row = document.getElementById('newCompanyRow');
     const isOpening = row.style.display !== 'flex';
@@ -275,6 +275,7 @@ document.getElementById('saveCompanyBtn').addEventListener('click', async () => 
         alert(data.error || 'Could not add company.');
     }
 });
+*/
 </script>
 </body>
 </html>

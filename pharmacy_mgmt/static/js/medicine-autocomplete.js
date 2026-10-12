@@ -38,8 +38,8 @@ function initMedicineSearch(onSelect) {
         if (results.length === 0) {
             dropdown.innerHTML = `
                 <div class="medicine-option"
-                  style="color:var(--ink-faint); cursor:default;">
-                  No medicines found
+                style="color:var(--ink-faint); cursor:default;">
+                No medicines found
                 </div>`;
             dropdown.classList.add('is-open');
             return;
@@ -48,15 +48,41 @@ function initMedicineSearch(onSelect) {
         results.forEach((m, i) => {
             const isLow  = m.quantity < 10;
             const item   = document.createElement('div');
-            item.className = 'medicine-option';
+            item.className   = 'medicine-option';
             item.dataset.index = i;
+
+            // Build the price section
+            // If discount exists — show crossed-out original + discounted price
+            let priceHtml = '';
+            if (m.discount_price && m.discount_price < m.price) {
+                priceHtml = `
+                    <span style="font-size:10px; color:var(--ink-faint);
+                                text-decoration:line-through; margin-top:1px;">
+                    ৳${m.price.toFixed(2)}
+                    </span>
+                    <span style="font-size:10px; font-weight:700;
+                                color:var(--data-coral);">
+                    ${m.discount_pct}% off
+                    </span>
+                `;
+            } else {
+                priceHtml = `
+                    <span class="medicine-option__price">
+                    ৳${m.price.toFixed(2)}
+                    </span>
+                `;
+            }
+
             item.innerHTML = `
                 <div class="medicine-option__left">
                     <span class="medicine-option__name">${m.name}</span>
-                    <span class="medicine-option__type">${m.product_type}</span>
+                    <span class="medicine-option__type">
+                    ${m.product_type}
+                    ${m.company ? `· <span style="color:var(--ink-faint);">${m.company}</span>` : ''}
+                    </span>
                 </div>
                 <div class="medicine-option__right">
-                    <span class="medicine-option__price">৳${m.price.toFixed(2)}</span>
+                    ${priceHtml}
                     <span class="medicine-option__stock ${isLow ? 'low' : 'ok'}">
                         ${isLow ? '⚠ ' : ''}Stock: ${m.quantity}
                     </span>
@@ -69,7 +95,6 @@ function initMedicineSearch(onSelect) {
 
         dropdown.classList.add('is-open');
     }
-
     function selectMedicine(m) {
         // Fill the input with the selected name
         input.value = m.name;
