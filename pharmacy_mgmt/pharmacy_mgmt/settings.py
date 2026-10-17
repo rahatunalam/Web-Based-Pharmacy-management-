@@ -70,7 +70,7 @@ WSGI_APPLICATION = 'pharmacy_mgmt.wsgi.application'
 # When running locally, falls back to your PostgreSQL
 DATABASES = {
     'default': dj_database_url.config(
-        default='postgresql://postgres:Rahat@1520@localhost:5432/peoples_pharma',
+        default='postgresql://postgres:Rahat%401520@localhost:5432/peoples_pharma',
         conn_max_age=600,
     )
 }
