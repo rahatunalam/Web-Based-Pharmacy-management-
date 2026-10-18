@@ -22,6 +22,10 @@ ALLOWED_HOSTS = os.environ.get(
     'localhost,127.0.0.1'
 ).split(',')
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.up.railway.app',    # ← add this
+]
+
 # ── Apps ──────────────────────────────────────────────────
 INSTALLED_APPS = [
     'django.contrib.admin',
