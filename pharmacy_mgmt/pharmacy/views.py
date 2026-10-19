@@ -276,15 +276,19 @@ def edit_company_save(request, pk):
             errors.append('Discount must be a valid number.')
 
         if not errors:
-            company.company        = name
-            company.discount_price = discount
-            company.save()
-        companies = Company.objects.all().order_by('company')
-        return render(request, 'pharmacy/add_company.html', {
-            'companies':  companies,
-            'editing_pk': pk,
-            'edit_errors': errors,
-        })
+            companies = Company.objects.all().order_by('company')
+            return render(request, 'pharmacy/add_company.html', {
+                'companies':  companies,
+                'editing_pk': pk,
+                'edit_errors': errors,
+            })
+        
+        company.company        = name
+        company.discount_price = discount
+        company.save()
+
+        return redirect('pharmacy:add_edit_company') 
+    
     return redirect('pharmacy:add_edit_company') 
 
 @login_required
