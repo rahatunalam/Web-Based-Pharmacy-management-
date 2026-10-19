@@ -278,7 +278,7 @@
             <th class="num">Units Sold</th>
             <th class="num">Discount Given</th>
             <th class="num">Net Sale Amount</th>
-            <th class="num">Share of Revenue</th>
+            <!--<th class="num">Share of Revenue</th>-->
             <th>Last Order</th>
           </tr>
         </thead>
@@ -320,7 +320,7 @@
             </td>
 
             <!-- Share of revenue — visual progress bar -->
-            <td class="num">
+            <!--<td class="num">
               {% if grand_total > 0 %}
                 {% widthratio c.net_sale grand_total 100 as pct %}
                 <span style="font-size:12px;">{{ pct }}%</span>
@@ -331,7 +331,7 @@
               {% else %}
                 —
               {% endif %}
-            </td>
+            </td>-->
 
             <td style="color:var(--ink-soft); font-size:13px;">
               {% if c.last_order %}
