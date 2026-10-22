@@ -4,6 +4,23 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ── .env file ─────────────────────────────────────────────
+# Loads KEY=value lines from pharmacy_mgmt/.env into the environment.
+# Real environment variables (e.g. on Railway) take priority.
+_env_file = BASE_DIR / '.env'
+if _env_file.exists():
+    for _line in _env_file.read_text(encoding='utf-8-sig').splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith('#') and '=' in _line:
+            _key, _value = _line.split('=', 1)
+            os.environ.setdefault(_key.strip(), _value.strip().strip('"\''))
+
+# ── Licence (subscription check, see pharmacy/middleware.py) ──
+# Fixed in code on purpose: not read from .env or Railway Variables,
+# so they can't be removed or overridden from the hosting dashboard.
+LICENSE_URL = 'https://submanager.rasqira.com/api/license'
+LICENSE_KEY = 'sk_d1330f478a530c62cd0658b023cd542aedcc'
+
 # ── Security ──────────────────────────────────────────────
 # Reads from Railway environment variable in production
 # Falls back to your local key during development
@@ -42,6 +59,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',          # ← add this
+    'pharmacy.middleware.LicenseMiddleware',               # subscription check (LICENSE_URL / LICENSE_KEY)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
